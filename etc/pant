@@ -1,0 +1,47 @@
+#!/bin/bash
+
+FULLNAME=`readlink -f "$0"`
+PROG=`basename "$FULLNAME"`
+DIR=`dirname "$FULLNAME"`
+
+# Default #threads == #cpus
+threads=`grep ^processor /proc/cpuinfo | wc -l`
+threadflag=
+
+# Default lib dir == script dir
+libdir=$DIR
+libdirflag=
+
+usage()
+{
+  echo "usage: $PROG [-t <threads>] [-l <libdir>] [-- <antflag>...} ] <target> <target>..."
+}
+
+while getopts 'ht:l:' OPTION ; do
+  case $OPTION in
+    h) usage ; exit 0 ;;
+    t) if [ ! -z "$threadflag" ] ; then
+         echo "-t already specified"
+         usage
+         exit 1
+       fi
+       threadflag=1
+       threads="$OPTARG"
+       ;;
+    l) if [ ! -z "$libdirflag" ] ; then
+         echo "-l already specified"
+         usage
+         exit 1
+       fi
+       libdirflag=1
+       libdir="$OPTARG"
+       ;;
+    ?) usage ; exit 1 ;;
+  esac
+done
+
+shift $(($OPTIND - 1))
+
+echo Executing parallel ant with $threads threads
+
+ant -lib ${libdir}/parallel-ant.jar -Dant.executor.class=org.codeaholics.tools.build.pant.ParallelExecutor -Dpant.threads=${threads} -logger org.codeaholics.tools.build.pant.ParallelExecutorLogger $@
