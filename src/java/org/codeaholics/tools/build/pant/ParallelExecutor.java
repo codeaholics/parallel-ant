@@ -27,7 +27,7 @@ public class ParallelExecutor implements Executor {
     public void executeTargets(final Project project, final String[] targetNames) throws BuildException {
         final Map<String, Target> targetsByName = project.getTargets();
 
-        for (final String targetName : targetNames) {
+        for (final String targetName: targetNames) {
             executeTarget(targetsByName.get(targetName), targetsByName);
         }
     }
@@ -51,7 +51,7 @@ public class ParallelExecutor implements Executor {
 
     private synchronized void scheduleMore() {
         System.out.println("Immediately schedulable tasks: " + dependencyTree.discoverAllSchedulableTargets());
-        for (final TargetWrapper targetWrapper : dependencyTree.discoverAllSchedulableTargets()) {
+        for (final TargetWrapper targetWrapper: dependencyTree.discoverAllSchedulableTargets()) {
             executorService.submit(targetWrapper);
             targetWrapper.setState(TargetState.QUEUED);
             queued++;
