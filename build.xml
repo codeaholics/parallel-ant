@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="parallel-ant" default="dist" basedir=".">
-    
+<project name="parallel-ant" default="jar" basedir=".">
     <property name="src.dir" location="./src"/>
     <property name="src.java.dir" location="${src.dir}/java"/>
     <property name="src.test.dir" location="${src.dir}/test"/>
@@ -12,11 +11,14 @@
     <property name="classes.dir" location="${build.dir}/classes"/>
     <property name="classes.java.dir" location="${classes.dir}/java"/>
     <property name="classes.test.dir" location="${classes.dir}/test"/>
+    <property name="junit.report.dir" location="${build.dir}/junit"/>
     
     <property name="dist.dir" location="${build.dir}"/>
     
     <path id="classpath">
-        <pathelement path="${lib.dir}/apache-ant-1.7.0/ant-1.7.0.jar" />
+        <!-- Ant not needed on build/test classpath because we're running under Ant, so it's already put itself on --> 
+        <!-- the path -->
+        <!-- <pathelement path="${lib.dir}/apache-ant-1.7.0/ant-1.7.0.jar" />  -->
     </path>
         
     <path id="test-classpath">
@@ -25,6 +27,7 @@
         <fileset dir="${lib.dir}/jmock-2.5.1">
             <include name="jmock-2.5.1.jar"/>
             <include name="jmock-junit4-2.5.1.jar"/>
+            <include name="hamcrest-library-1.1.jar"/>
         </fileset>
     </path>
         
@@ -48,6 +51,26 @@
     </target>
     
     <target name="test" depends="compile-test">
+        <mkdir dir="${junit.report.dir}"/>
+        <junit printsummary="on" fork="true" forkmode="once" failureproperty="junit.failed">
+            <formatter type="plain"/>
+            <formatter type="xml" />
+            <classpath>
+                <pathelement location="${classes.test.dir}"/>
+                <pathelement location="${classes.java.dir}"/>
+                <path refid="test-classpath"/>
+            </classpath>
+            <batchtest todir="${junit.report.dir}">
+                <fileset dir="${src.test.dir}" includes="**/*Test.java"/>
+            </batchtest>
+        </junit>
+        <junitreport todir="${junit.report.dir}">
+          <fileset dir="${junit.report.dir}">
+            <include name="TEST-*.xml"/>
+          </fileset>
+          <report format="frames" todir="${junit.report.dir}/html"/>
+        </junitreport>
+        <fail message="JUnit tests failed. See ${junit.report.dir}/html/index.html" if="junit.failed"/>
     </target>
 
     <target name="jar" depends="compile-src">
