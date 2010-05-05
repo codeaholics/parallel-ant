@@ -19,6 +19,15 @@
         <pathelement path="${lib.dir}/apache-ant-1.7.0/ant-1.7.0.jar" />
     </path>
         
+    <path id="test-classpath">
+        <path refid="classpath"/>
+        <pathelement location="${lib.dir}/junit-4.8.2/junit-4.8.2.jar"/>
+        <fileset dir="${lib.dir}/jmock-2.5.1">
+            <include name="jmock-2.5.1.jar"/>
+            <include name="jmock-junit4-2.5.1.jar"/>
+        </fileset>
+    </path>
+        
     <target name="clean">
         <delete dir="${build.dir}"/>
     </target>
@@ -34,7 +43,7 @@
         <mkdir dir="${classes.test.dir}"/>
         <javac srcdir="${src.test.dir}" destdir="${classes.test.dir}">
             <classpath location="${classes.java.dir}"/>
-            <classpath refid="classpath"/>
+            <classpath refid="test-classpath"/>
         </javac>
     </target>
     

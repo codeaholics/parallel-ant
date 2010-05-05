@@ -11,19 +11,13 @@ import org.apache.tools.ant.Project;
 import org.apache.tools.ant.util.FileUtils;
 import org.apache.tools.ant.util.StringUtils;
 
-/**
- * Implementation of a logger which in compatible with a parallel execution of
- * targets.
- * 
- * @see ParallelExecutor
- */
 public class ParallelExecutorLogger extends DefaultLogger {
-
     private static final int LEFT_COLUMN_SIZE = 26;
 
     private static final String STARTED_SYMBOL = "+ ";
     private static final String FINISHED_SYMBOL = "- ";
 
+    @Override
     public void targetStarted(final BuildEvent event) {
         if (Project.MSG_INFO <= msgOutputLevel && !event.getTarget().getName().equals("")) {
             final String msg = STARTED_SYMBOL + event.getTarget().getName();
@@ -32,6 +26,7 @@ public class ParallelExecutorLogger extends DefaultLogger {
         }
     }
 
+    @Override
     public void targetFinished(final BuildEvent event) {
         if (Project.MSG_INFO <= msgOutputLevel && !event.getTarget().getName().equals("")) {
             final String msg = FINISHED_SYMBOL + event.getTarget().getName();
@@ -40,6 +35,7 @@ public class ParallelExecutorLogger extends DefaultLogger {
         }
     }
 
+    @Override
     public void messageLogged(final BuildEvent event) {
         final int priority = event.getPriority();
         // Filter out messages based on priority
@@ -105,6 +101,7 @@ public class ParallelExecutorLogger extends DefaultLogger {
         }
     }
 
+    @Override
     protected void printMessage(final String message, final PrintStream stream, final int priority) {
         synchronized (this) {
             super.printMessage(message, stream, priority);

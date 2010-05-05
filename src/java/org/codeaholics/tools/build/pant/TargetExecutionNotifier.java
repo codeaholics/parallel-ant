@@ -1,7 +1,7 @@
 package org.codeaholics.tools.build.pant;
 
 public interface TargetExecutionNotifier {
-    void notifyStarting(TargetWrapper targetWrapper);
+    void notifyStarting(DependencyGraphEntry dependencyGraphEntry);
 
-    void notifyComplete(TargetWrapper targetWrapper);
+    void notifyComplete(DependencyGraphEntry dependencyGraphEntry);
 }

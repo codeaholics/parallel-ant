@@ -14,8 +14,8 @@ import org.apache.tools.ant.helper.SingleCheckExecutor;
 public class ParallelExecutor implements Executor {
     private static final SingleCheckExecutor SUB_EXECUTOR = new SingleCheckExecutor();
 
-    private DependencyTree dependencyTree;
-    private TargetWrapper rootTargetWrapper;
+    private DependencyGraph dependencyGraph;
+    private DependencyGraphEntry rootDependencyGraphEntry;
     private ExecutorService executorService;
 
     private int queued;
@@ -33,10 +33,11 @@ public class ParallelExecutor implements Executor {
     }
 
     private void executeTarget(final Target target, final Map<String, Target> targetsByName) {
-        final TargetWrapperFactory targetWrapperFactory = new TargetWrapperFactory(getTargetExecutionNotifier());
-        dependencyTree = new DependencyTree(targetsByName, targetWrapperFactory);
-        rootTargetWrapper = dependencyTree.buildDependencies(target);
-        dependencyTree.dump();
+        final DependencyGraphEntryFactory dependencyGraphEntryFactory =
+            new DependencyGraphEntryFactory(getTargetExecutionNotifier(), new TargetExecutorImpl());
+        dependencyGraph = new DependencyGraph(targetsByName, dependencyGraphEntryFactory);
+        rootDependencyGraphEntry = dependencyGraph.buildDependencies(target);
+        dependencyGraph.dump();
 
         executorService = Executors.newFixedThreadPool(2);
 
@@ -50,33 +51,29 @@ public class ParallelExecutor implements Executor {
     }
 
     private synchronized void scheduleMore() {
-        System.out.println("Immediately schedulable tasks: " + dependencyTree.discoverAllSchedulableTargets());
-        for (final TargetWrapper targetWrapper: dependencyTree.discoverAllSchedulableTargets()) {
-            executorService.submit(targetWrapper);
-            targetWrapper.setState(TargetState.QUEUED);
+        for (final DependencyGraphEntry dependencyGraphEntry: dependencyGraph.discoverAllSchedulableTargets()) {
+            dependencyGraphEntry.setState(TargetState.QUEUED);
             queued++;
-            System.out.println("  Queued: " + targetWrapper);
+            executorService.submit(dependencyGraphEntry);
         }
     }
 
     private TargetExecutionNotifier getTargetExecutionNotifier() {
         return new TargetExecutionNotifier() {
             @Override
-            public void notifyStarting(final TargetWrapper targetWrapper) {
-                targetWrapper.setState(TargetState.RUNNING);
+            public void notifyStarting(final DependencyGraphEntry dependencyGraphEntry) {
+                dependencyGraphEntry.setState(TargetState.RUNNING);
                 started++;
-                System.out.println("  Starting: " + targetWrapper);
             }
 
             @Override
-            public void notifyComplete(final TargetWrapper targetWrapper) {
-                targetWrapper.setState(TargetState.COMPLETE);
+            public void notifyComplete(final DependencyGraphEntry dependencyGraphEntry) {
+                dependencyGraphEntry.setState(TargetState.COMPLETE);
                 finished++;
-                System.out.println("  Completed: " + targetWrapper);
 
                 scheduleMore();
 
-                if (targetWrapper == rootTargetWrapper) {
+                if (dependencyGraphEntry == rootDependencyGraphEntry) {
                     executorService.shutdown();
                 }
             }

@@ -5,17 +5,20 @@ import java.util.Set;
 
 import org.apache.tools.ant.Target;
 
-public class TargetWrapper implements Runnable {
+public class DependencyGraphEntry implements Runnable {
     private final Target target;
     private final TargetExecutionNotifier executionNotifier;
+    private final TargetExecutor targetExecutor;
     private final Set<String> predecessors = new HashSet<String>();
     private final Set<String> successors = new HashSet<String>();
 
     private TargetState state = TargetState.WAITING;
 
-    public TargetWrapper(final Target target, final TargetExecutionNotifier executionNotifier) {
+    public DependencyGraphEntry(final Target target, final TargetExecutionNotifier executionNotifier,
+                                final TargetExecutor targetExecutor) {
         this.target = target;
         this.executionNotifier = executionNotifier;
+        this.targetExecutor = targetExecutor;
     }
 
     public Target getTarget() {
@@ -55,12 +58,9 @@ public class TargetWrapper implements Runnable {
     public void run() {
         executionNotifier.notifyStarting(this);
         try {
-            System.out.println("Gonna run " + target.getName());
-            try {
-                Thread.sleep(500);
-            } catch (final InterruptedException e) {
-                // do nothing
-            }
+            //            if (target.getProject().isKeepGoingMode()) {
+            targetExecutor.executeTarget(target);
+            //            }
         } finally {
             executionNotifier.notifyComplete(this);
         }
