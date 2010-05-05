@@ -13,7 +13,9 @@ import org.apache.tools.ant.helper.SingleCheckExecutor;
 
 public class ParallelExecutor implements Executor {
     private static final SingleCheckExecutor SUB_EXECUTOR = new SingleCheckExecutor();
+
     private DependencyTree dependencyTree;
+    private TargetWrapper rootTargetWrapper;
     private ExecutorService executorService;
 
     private int queued;
@@ -32,7 +34,8 @@ public class ParallelExecutor implements Executor {
 
     private void executeTarget(final Target target, final Map<String, Target> targetsByName) {
         final TargetWrapperFactory targetWrapperFactory = new TargetWrapperFactory(getTargetExecutionNotifier());
-        dependencyTree = new DependencyTree(target, targetsByName, targetWrapperFactory);
+        dependencyTree = new DependencyTree(targetsByName, targetWrapperFactory);
+        rootTargetWrapper = dependencyTree.buildDependencies(target);
         dependencyTree.dump();
 
         executorService = Executors.newFixedThreadPool(2);
@@ -46,19 +49,14 @@ public class ParallelExecutor implements Executor {
         }
     }
 
-    private synchronized boolean scheduleMore() {
-        boolean moreFound = false;
-
+    private synchronized void scheduleMore() {
         System.out.println("Immediately schedulable tasks: " + dependencyTree.discoverAllSchedulableTargets());
         for (final TargetWrapper targetWrapper : dependencyTree.discoverAllSchedulableTargets()) {
             executorService.submit(targetWrapper);
             targetWrapper.setState(TargetState.QUEUED);
             queued++;
-            moreFound = true;
             System.out.println("  Queued: " + targetWrapper);
         }
-
-        return moreFound;
     }
 
     private TargetExecutionNotifier getTargetExecutionNotifier() {
@@ -75,8 +73,10 @@ public class ParallelExecutor implements Executor {
                 targetWrapper.setState(TargetState.COMPLETE);
                 finished++;
                 System.out.println("  Completed: " + targetWrapper);
-                if (!scheduleMore() && finished == queued) {
-                    // We didn't add an tasks to the queue, and we've finished everything we've queued... we're done.
+
+                scheduleMore();
+
+                if (targetWrapper == rootTargetWrapper) {
                     executorService.shutdown();
                 }
             }
