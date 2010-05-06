@@ -1,5 +1,8 @@
 package org.codeaholics.tools.build.pant;
 
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.assertThat;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -14,10 +17,6 @@ import org.jmock.lib.legacy.ClassImposteriser;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import static org.hamcrest.Matchers.*;
-
-import static org.junit.Assert.*;
 
 @RunWith(JMock.class)
 public class DependencyGraphTest {
@@ -58,9 +57,9 @@ public class DependencyGraphTest {
 
     @Test
     public void testCorrectlyDeterminesSuccessors() {
-        final Target target1 = createTargetAndPutInMap(TARGET_NAME1);
-        final Target target2 = createTargetAndPutInMap(TARGET_NAME2, TARGET_NAME1);
-        final Target target3 = createTargetAndPutInMap(TARGET_NAME3, TARGET_NAME1);
+        createTargetAndPutInMap(TARGET_NAME1);
+        createTargetAndPutInMap(TARGET_NAME2, TARGET_NAME1);
+        createTargetAndPutInMap(TARGET_NAME3, TARGET_NAME1);
         final Target target4 = createTargetAndPutInMap(TARGET_NAME4, TARGET_NAME2, TARGET_NAME3);
 
         final Set<String> expectedSuccessorsOfTarget1 = new HashSet<String>(Arrays.asList(TARGET_NAME3, TARGET_NAME2));
@@ -77,14 +76,7 @@ public class DependencyGraphTest {
     }
 
     private Target createTargetAndPutInMap(final String targetName, final String... dependencies) {
-        final Target target = mockery.mock(Target.class, "target:" + targetName);
-        mockery.checking(new Expectations() {{
-            allowing(target).getName();
-            will(returnValue(targetName));
-
-            allowing(target).getDependencies();
-            will(returnEnumeration(dependencies));
-        }});
+        final Target target = AntTestHelper.createTarget(mockery, targetName, dependencies);
 
         targetMap.put(targetName, target);
 

@@ -2,7 +2,6 @@ package org.codeaholics.tools.build.pant;
 
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.tools.ant.BuildException;
@@ -16,6 +15,7 @@ public class ParallelExecutor implements Executor {
 
     private DependencyGraph dependencyGraph;
     private DependencyGraphEntry rootDependencyGraphEntry;
+    private ExecutorServiceFactory executorServiceFactory = new ExecutorServiceFactoryImpl();
     private ExecutorService executorService;
 
     private int queued;
@@ -27,9 +27,27 @@ public class ParallelExecutor implements Executor {
     public void executeTargets(final Project project, final String[] targetNames) throws BuildException {
         final Map<String, Target> targetsByName = project.getTargets();
 
+        BuildException thrownException = null;
+
         for (final String targetName: targetNames) {
-            executeTarget(targetsByName.get(targetName), targetsByName);
+            try {
+                executeTarget(targetsByName.get(targetName), targetsByName);
+            } catch (final BuildException ex) {
+                if (project.isKeepGoingMode()) {
+                    thrownException = ex;
+                } else {
+                    throw ex;
+                }
+            }
         }
+
+        if (thrownException != null) {
+            throw thrownException;
+        }
+    }
+
+    public void setExecutorServiceFactory(final ExecutorServiceFactory executorServiceFactory) {
+        this.executorServiceFactory = executorServiceFactory;
     }
 
     private void executeTarget(final Target target, final Map<String, Target> targetsByName) {
@@ -37,9 +55,8 @@ public class ParallelExecutor implements Executor {
             new DependencyGraphEntryFactory(getTargetExecutionNotifier(), new TargetExecutorImpl());
         dependencyGraph = new DependencyGraph(targetsByName, dependencyGraphEntryFactory);
         rootDependencyGraphEntry = dependencyGraph.buildDependencies(target);
-        dependencyGraph.dump();
 
-        executorService = Executors.newFixedThreadPool(2);
+        executorService = executorServiceFactory.create(2);
 
         scheduleMore();
 
