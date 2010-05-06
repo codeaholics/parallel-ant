@@ -27,7 +27,10 @@
         <fileset dir="${lib.dir}/jmock-2.5.1">
             <include name="jmock-2.5.1.jar"/>
             <include name="jmock-junit4-2.5.1.jar"/>
+            <include name="jmock-legacy-2.5.1.jar"/>
             <include name="hamcrest-library-1.1.jar"/>
+            <include name="cglib-nodep-2.1_3.jar"/>
+            <include name="objenesis-1.0.jar"/>
         </fileset>
     </path>
         
