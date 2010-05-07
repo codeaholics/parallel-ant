@@ -1,5 +1,6 @@
 package org.codeaholics.tools.build.pant;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -16,11 +17,13 @@ public class ParallelExecutor implements Executor {
     private DependencyGraph dependencyGraph;
     private DependencyGraphEntry rootDependencyGraphEntry;
     private ExecutorServiceFactory executorServiceFactory = new ExecutorServiceFactoryImpl();
+    private TargetExecutor targetExecutor = new TargetExecutorImpl();
     private ExecutorService executorService;
 
     private int queued;
     private int started;
     private int finished;
+
 
     @SuppressWarnings("unchecked")
     @Override
@@ -50,9 +53,13 @@ public class ParallelExecutor implements Executor {
         this.executorServiceFactory = executorServiceFactory;
     }
 
+    public void setTargetExecutor(final TargetExecutor targetExecutor) {
+        this.targetExecutor = targetExecutor;
+    }
+
     private void executeTarget(final Target target, final Map<String, Target> targetsByName) {
         final DependencyGraphEntryFactory dependencyGraphEntryFactory =
-            new DependencyGraphEntryFactory(getTargetExecutionNotifier(), new TargetExecutorImpl());
+            new DependencyGraphEntryFactory(getTargetExecutionNotifier(), targetExecutor);
         dependencyGraph = new DependencyGraph(targetsByName, dependencyGraphEntryFactory);
         rootDependencyGraphEntry = dependencyGraph.buildDependencies(target);
 
@@ -68,8 +75,13 @@ public class ParallelExecutor implements Executor {
     }
 
     private synchronized void scheduleMore() {
-        for (final DependencyGraphEntry dependencyGraphEntry: dependencyGraph.discoverAllSchedulableTargets()) {
+        final List<DependencyGraphEntry> schedulableTargets = dependencyGraph.discoverAllSchedulableTargets();
+
+        for (final DependencyGraphEntry dependencyGraphEntry: schedulableTargets) {
             dependencyGraphEntry.setState(TargetState.QUEUED);
+        }
+
+        for (final DependencyGraphEntry dependencyGraphEntry: schedulableTargets) {
             queued++;
             executorService.submit(dependencyGraphEntry);
         }
