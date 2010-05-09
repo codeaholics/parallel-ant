@@ -52,23 +52,12 @@ public class DependencyGraph {
         final List<DependencyGraphEntry> schedulableTargets = new LinkedList<DependencyGraphEntry>();
 
         for (final DependencyGraphEntry dependencyGraphEntry: dependencyGraphEntries.values()) {
-            if ((dependencyGraphEntry.getState() == TargetState.WAITING) &&
-                    areAllPredecessorsComplete(dependencyGraphEntry)) {
+            if (dependencyGraphEntry.isTargetWaiting() && isReadyToSchedule(dependencyGraphEntry)) {
                 schedulableTargets.add(dependencyGraphEntry);
             }
         }
 
         return schedulableTargets;
-    }
-
-    private boolean areAllPredecessorsComplete(final DependencyGraphEntry dependencyGraphEntry) {
-        for (final String predecessor: dependencyGraphEntry.getPredecessors()) {
-            if (dependencyGraphEntries.get(predecessor).getState() != TargetState.COMPLETE) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     public void dump() {
@@ -87,5 +76,15 @@ public class DependencyGraph {
             System.out.println();
             System.out.println("=========================================================");
         }
+    }
+
+    private boolean isReadyToSchedule(final DependencyGraphEntry dependencyGraphEntry) {
+        for (final String predecessor : dependencyGraphEntry.getPredecessors()) {
+            if (!dependencyGraphEntries.get(predecessor).isTargetComplete()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

@@ -13,6 +13,7 @@ import org.apache.tools.ant.helper.SingleCheckExecutor;
 
 public class ParallelExecutor implements Executor {
     private static final SingleCheckExecutor SUB_EXECUTOR = new SingleCheckExecutor();
+    private static final int DEFAULT_THREAD_COUNT = 2;
 
     private DependencyGraph dependencyGraph;
     private DependencyGraphEntry rootDependencyGraphEntry;
@@ -59,11 +60,11 @@ public class ParallelExecutor implements Executor {
 
     private void executeTarget(final Target target, final Map<String, Target> targetsByName) {
         final DependencyGraphEntryFactory dependencyGraphEntryFactory =
-            new DependencyGraphEntryFactory(getTargetExecutionNotifier(), targetExecutor);
+            new DependencyGraphEntryFactoryImpl(getTargetExecutionNotifier(), targetExecutor);
         dependencyGraph = new DependencyGraph(targetsByName, dependencyGraphEntryFactory);
         rootDependencyGraphEntry = dependencyGraph.buildDependencies(target);
 
-        executorService = executorServiceFactory.create(2);
+        executorService = executorServiceFactory.create(getNumberOfThreads());
 
         scheduleMore();
 
@@ -72,6 +73,10 @@ public class ParallelExecutor implements Executor {
         } catch (final InterruptedException e) {
             // ignore
         }
+    }
+
+    private int getNumberOfThreads() {
+        return DEFAULT_THREAD_COUNT;
     }
 
     private synchronized void scheduleMore() {

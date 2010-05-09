@@ -4,12 +4,17 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.tools.ant.Target;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.integration.junit4.JMock;
@@ -39,9 +44,9 @@ public class DependencyGraphTest {
     }
 
     @Test
-    public void testReturnsSameDependencyGraphEntryWhenFindingDependenciesForSameTarget() {
-        final Target target = createTargetAndPutInMap(TARGET_NAME1);
-        final DependencyGraphEntry dependencyGraphEntry = new DependencyGraphEntry(target, null, null);
+    public void testReturnsSameDependencyGraphEntryWhenFindingDependenciesRepeatedlyForSameTarget() {
+        final Target target = createAndAddTarget(TARGET_NAME1);
+        final DependencyGraphEntry dependencyGraphEntry = createDependencyGraphEntry(target);
 
         mockery.checking(new Expectations() {{
             one(dependencyGraphEntryFactory).create(target);  // only calls the factory once
@@ -57,25 +62,71 @@ public class DependencyGraphTest {
 
     @Test
     public void testCorrectlyDeterminesSuccessors() {
-        createTargetAndPutInMap(TARGET_NAME1);
-        createTargetAndPutInMap(TARGET_NAME2, TARGET_NAME1);
-        createTargetAndPutInMap(TARGET_NAME3, TARGET_NAME1);
-        final Target target4 = createTargetAndPutInMap(TARGET_NAME4, TARGET_NAME2, TARGET_NAME3);
+        final Target target1 = createAndAddTarget(TARGET_NAME1);
+        final Target target2 = createAndAddTarget(TARGET_NAME2, TARGET_NAME1);
+        final Target target3 = createAndAddTarget(TARGET_NAME3, TARGET_NAME1);
+        final Target target4 = createAndAddTarget(TARGET_NAME4, TARGET_NAME2, TARGET_NAME3);
 
-        final Set<String> expectedSuccessorsOfTarget1 = new HashSet<String>(Arrays.asList(TARGET_NAME3, TARGET_NAME2));
+        final DependencyGraph dependencyGraph = new DependencyGraph(targetMap, dependencyGraphEntryFactory);
 
-        final CapturingDependencyGraphEntryFactory capturingDependencyGraphEntryFactory =
-            new CapturingDependencyGraphEntryFactory(null, null);
-
-        final DependencyGraph dependencyGraph = new DependencyGraph(targetMap, capturingDependencyGraphEntryFactory);
+        final DependencyGraphEntry dependencyGraphEntryForTarget1 = expectCreateDependencyGraphEntry(target1);
+        expectCreateDependencyGraphEntry(target2);
+        expectCreateDependencyGraphEntry(target3);
+        expectCreateDependencyGraphEntry(target4);
 
         dependencyGraph.buildDependencies(target4);
 
-        assertThat(capturingDependencyGraphEntryFactory.get(TARGET_NAME1).getSuccessors(),
-                   equalTo(expectedSuccessorsOfTarget1));
+        assertThat(dependencyGraphEntryForTarget1.getSuccessors(), equalTo(setOf(TARGET_NAME3, TARGET_NAME2)));
     }
 
-    private Target createTargetAndPutInMap(final String targetName, final String... dependencies) {
+    @Test
+    public void testCorrectlyDiscoversSchedulableTargets() {
+        final Target target1 = createAndAddTarget(TARGET_NAME1);
+        final Target target2 = createAndAddTarget(TARGET_NAME2, TARGET_NAME1);
+        final Target target3 = createAndAddTarget(TARGET_NAME3, TARGET_NAME1);
+        final Target target4 = createAndAddTarget(TARGET_NAME4, TARGET_NAME2, TARGET_NAME3);
+
+        final DependencyGraph dependencyGraph = new DependencyGraph(targetMap, dependencyGraphEntryFactory);
+
+        final DependencyGraphEntry dependencyGraphEntryForTarget1 = expectCreateDependencyGraphEntry(target1);
+        final DependencyGraphEntry dependencyGraphEntryForTarget2 = expectCreateDependencyGraphEntry(target2);
+        final DependencyGraphEntry dependencyGraphEntryForTarget3 = expectCreateDependencyGraphEntry(target3);
+        final DependencyGraphEntry dependencyGraphEntryForTarget4 = expectCreateDependencyGraphEntry(target4);
+
+        dependencyGraph.buildDependencies(target4);
+
+        assertThat(dependencyGraph.discoverAllSchedulableTargets(), equalToUnsortedList(dependencyGraphEntryForTarget1));
+
+        dependencyGraphEntryForTarget1.setState(TargetState.RUNNING);
+        assertThat(dependencyGraph.discoverAllSchedulableTargets(), equalTo(Collections.<DependencyGraphEntry>emptyList()));
+
+        dependencyGraphEntryForTarget1.setState(TargetState.COMPLETE);
+        assertThat(dependencyGraph.discoverAllSchedulableTargets(), equalToUnsortedList(dependencyGraphEntryForTarget2,
+                                                                                        dependencyGraphEntryForTarget3));
+
+        dependencyGraphEntryForTarget2.setState(TargetState.QUEUED);
+        dependencyGraphEntryForTarget3.setState(TargetState.COMPLETE);
+        assertThat(dependencyGraph.discoverAllSchedulableTargets(), equalTo(Collections.<DependencyGraphEntry>emptyList()));
+
+        dependencyGraphEntryForTarget2.setState(TargetState.COMPLETE);
+        assertThat(dependencyGraph.discoverAllSchedulableTargets(), equalToUnsortedList(dependencyGraphEntryForTarget4));
+
+        dependencyGraphEntryForTarget4.setState(TargetState.COMPLETE);
+        assertThat(dependencyGraph.discoverAllSchedulableTargets(), equalTo(Collections.<DependencyGraphEntry>emptyList()));
+    }
+
+    private DependencyGraphEntry expectCreateDependencyGraphEntry(final Target target) {
+        final DependencyGraphEntry dependencyGraphEntry = createDependencyGraphEntry(target);
+
+        mockery.checking(new Expectations() {{
+            one(dependencyGraphEntryFactory).create(target);
+            will(returnValue(dependencyGraphEntry));
+        }});
+
+        return dependencyGraphEntry;
+    }
+
+    private Target createAndAddTarget(final String targetName, final String... dependencies) {
         final Target target = AntTestHelper.createTarget(mockery, targetName, dependencies);
 
         targetMap.put(targetName, target);
@@ -83,24 +134,31 @@ public class DependencyGraphTest {
         return target;
     }
 
-    private static final class CapturingDependencyGraphEntryFactory extends DependencyGraphEntryFactory {
-        private final Map<String, DependencyGraphEntry> capturedEntries;
-
-        public CapturingDependencyGraphEntryFactory(final TargetExecutionNotifier targetExecutionNotifier,
-                                                    final TargetExecutor targetExecutor) {
-            super(targetExecutionNotifier, targetExecutor);
-            capturedEntries = new HashMap<String, DependencyGraphEntry>();
-        }
-
-        @Override
-        public DependencyGraphEntry create(final Target target) {
-            final DependencyGraphEntry graphEntry = super.create(target);
-            capturedEntries.put(target.getName(), graphEntry);
-            return graphEntry;
-        }
-
-        public DependencyGraphEntry get(final String targetName) {
-            return capturedEntries.get(targetName);
-        }
+    private DependencyGraphEntry createDependencyGraphEntry(final Target target) {
+        return new DependencyGraphEntry(target, null, null);
     }
+
+    private <T> Set<T> setOf(final T... objects) {
+        return new HashSet<T>(Arrays.asList(objects));
+    }
+
+
+    private Matcher<List<DependencyGraphEntry>> equalToUnsortedList(final DependencyGraphEntry... dependencyGraphEntries) {
+        return new TypeSafeMatcher<List<DependencyGraphEntry>>() {
+            @Override
+            public void describeTo(final Description description) {
+                description.appendValueList("the list ", ",", " (in any order)", dependencyGraphEntries);
+            }
+
+            @Override
+            public boolean matchesSafely(final List<DependencyGraphEntry> list) {
+                if (list.size() != dependencyGraphEntries.length) {
+                    return false;
+                }
+
+                return list.containsAll(Arrays.asList(dependencyGraphEntries));
+            }
+        };
+    }
+
 }

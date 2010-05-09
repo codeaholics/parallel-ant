@@ -41,8 +41,12 @@ public class DependencyGraphEntry implements Runnable {
         return successors;
     }
 
-    public TargetState getState() {
-        return state;
+    public boolean isTargetComplete() {
+        return state == TargetState.COMPLETE;
+    }
+
+    public boolean isTargetWaiting() {
+        return state == TargetState.WAITING;
     }
 
     public void setState(final TargetState state) {

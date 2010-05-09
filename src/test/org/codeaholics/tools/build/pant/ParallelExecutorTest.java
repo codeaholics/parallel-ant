@@ -123,6 +123,7 @@ public class ParallelExecutorTest {
 
         allowNormalInteractions(targets, true);
 
+        // Used by the custom targetExecutor to record tasks as they run. Could be a Target[1] instead.
         final AtomicReference<Target> lastRunTarget = new AtomicReference<Target>(null);
 
         parallelExecutor.setTargetExecutor(new TargetExecutor() {
@@ -132,6 +133,7 @@ public class ParallelExecutorTest {
             }
         });
 
+        // We can't do this with a state, because, in theory, target1 and target2 could be run in any order.
         final Sequence sequence = mockery.sequence("executor shutdown after execution of target 3");
 
         mockery.checking(new Expectations() {{
@@ -151,6 +153,8 @@ public class ParallelExecutorTest {
 
         parallelExecutor.executeTargets(project, new String[] {TARGET_NAME3});
 
+        // This test relies on the fact that targets are executed as soon as they are submitted (the custom action in
+        // runTarget()).
         assertThat(lastRunTarget.get(), equalTo(target3DependingOnTargets1And2));
     }
 
