@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="parallel-ant" default="jar" basedir=".">
+    <property name="version" value="0.1-alpha"/>
+    
     <property name="src.dir" location="./src"/>
     <property name="src.java.dir" location="${src.dir}/java"/>
     <property name="src.test.dir" location="${src.dir}/test"/>
@@ -78,14 +80,17 @@
 
     <target name="jar" depends="compile-src">
         <mkdir dir="${dist.dir}"/>
-        <jar basedir="${classes.java.dir}" destfile="${dist.dir}/parallel-ant.jar"/>
+        <jar basedir="${classes.java.dir}" destfile="${dist.dir}/parallel-ant-${version}.jar"/>
     </target>
     
     <target name="dist" depends="test, jar">
         <mkdir dir="${dist.dir}"/>
-        <zip destfile="${dist.dir}/parallel-ant-dist.zip">
+        <zip destfile="${dist.dir}/parallel-ant-${version}-dist.zip">
             <fileset file="${etc.dir}/pant"/>
-            <fileset file="${dist.dir}/parallel-ant.jar"/>
+            <fileset file="${dist.dir}/parallel-ant-${version}.jar"/>
+            <fileset file="LICENCE"/>
+            <fileset file="NOTICE"/>
+            <fileset file="README"/>
         </zip>
     </target>
 </project>
