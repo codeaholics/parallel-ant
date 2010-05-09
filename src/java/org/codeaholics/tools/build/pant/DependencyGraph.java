@@ -79,7 +79,7 @@ public class DependencyGraph {
     }
 
     private boolean isReadyToSchedule(final DependencyGraphEntry dependencyGraphEntry) {
-        for (final String predecessor : dependencyGraphEntry.getPredecessors()) {
+        for (final String predecessor: dependencyGraphEntry.getPredecessors()) {
             if (!dependencyGraphEntries.get(predecessor).isTargetComplete()) {
                 return false;
             }

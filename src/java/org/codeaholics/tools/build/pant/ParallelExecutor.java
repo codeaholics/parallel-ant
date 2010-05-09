@@ -25,7 +25,6 @@ public class ParallelExecutor implements Executor {
     private int started;
     private int finished;
 
-
     @SuppressWarnings("unchecked")
     @Override
     public void executeTargets(final Project project, final String[] targetNames) throws BuildException {
