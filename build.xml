@@ -2,20 +2,22 @@
 <project name="parallel-ant" default="jar" basedir=".">
     <property name="version" value="0.1-alpha"/>
     
-    <property name="src.dir" location="./src"/>
-    <property name="src.java.dir" location="${src.dir}/java"/>
-    <property name="src.test.dir" location="${src.dir}/test"/>
+    <property name="src.dir" value="src"/>
+    <property name="src.java.dir" value="${src.dir}/java"/>
+    <property name="src.test.dir" value="${src.dir}/test"/>
     
-    <property name="lib.dir" location="./lib"/>
-    <property name="etc.dir" location="./etc"/>
+    <property name="lib.dir" value="lib"/>
+    <property name="etc.dir" value="etc"/>
         
-    <property name="build.dir" location="./build"/>
-    <property name="classes.dir" location="${build.dir}/classes"/>
-    <property name="classes.java.dir" location="${classes.dir}/java"/>
-    <property name="classes.test.dir" location="${classes.dir}/test"/>
-    <property name="junit.report.dir" location="${build.dir}/junit"/>
+    <property name="build.dir" value="build"/>
+    <property name="classes.dir" value="${build.dir}/classes"/>
+    <property name="classes.java.dir" value="${classes.dir}/java"/>
+    <property name="classes.test.dir" value="${classes.dir}/test"/>
+    <property name="junit.report.dir" value="${build.dir}/junit"/>
+
+    <property name="eclipse.output.dir" value="bin"/>
     
-    <property name="dist.dir" location="${build.dir}"/>
+    <property name="dist.dir" value="${build.dir}"/>
     
     <path id="classpath">
         <!-- Ant not needed on build/test classpath because we're running under Ant, so it's already put itself on --> 
@@ -78,12 +80,20 @@
         <fail message="JUnit tests failed. See ${junit.report.dir}/html/index.html" if="junit.failed"/>
     </target>
 
+    <target name="zip-src">
+        <mkdir dir="${dist.dir}"/>
+        <zip destfile="${dist.dir}/parallel-ant-${version}-src.zip" basedir=".">
+            <exclude name="${build.dir}/**"/>
+            <exclude name="${eclipse.output.dir}/**"/>
+        </zip>
+    </target>
+    
     <target name="jar" depends="compile-src">
         <mkdir dir="${dist.dir}"/>
         <jar basedir="${classes.java.dir}" destfile="${dist.dir}/parallel-ant-${version}.jar"/>
     </target>
     
-    <target name="dist" depends="test, jar">
+    <target name="dist" depends="test, jar, zip-src">
         <mkdir dir="${dist.dir}"/>
         <zip destfile="${dist.dir}/parallel-ant-${version}-dist.zip">
             <fileset file="${etc.dir}/pant"/>
