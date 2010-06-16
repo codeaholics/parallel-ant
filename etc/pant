@@ -58,4 +58,4 @@ shift $(($OPTIND - 1))
 
 echo Executing parallel ant with $threads threads
 
-ant -lib ${libdir}/parallel-ant.jar -Dant.executor.class=org.codeaholics.tools.build.pant.ParallelExecutor -Dpant.threads=${threads} -logger org.codeaholics.tools.build.pant.ParallelExecutorLogger $@
+ant -lib ${libdir}/parallel-ant.jar -Dant.executor.class=org.codeaholics.tools.build.pant.ParallelExecutor -Dpant.threads=${threads} -logger org.codeaholics.tools.build.pant.ParallelExecutorLogger "$@"
