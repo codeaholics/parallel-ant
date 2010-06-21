@@ -29,7 +29,7 @@ import org.junit.runner.RunWith;
 public class DependencyGraphEntryTest {
     private Mockery mockery;
     private TargetExecutionNotifier targetExecutionNotifier;
-    private TargetExecutor targetExecutor;
+    private AntWrapper targetExecutor;
     private Target target;
     private DependencyGraphEntry dependencyGraphEntry;
 
@@ -39,7 +39,7 @@ public class DependencyGraphEntryTest {
 
         target = new Target();
         targetExecutionNotifier = mockery.mock(TargetExecutionNotifier.class);
-        targetExecutor = mockery.mock(TargetExecutor.class);
+        targetExecutor = mockery.mock(AntWrapper.class);
 
         dependencyGraphEntry = new DependencyGraphEntry(target, targetExecutionNotifier, targetExecutor);
     }

@@ -16,10 +16,16 @@ package org.codeaholics.tools.build.pant;
  *   limitations under the License.
  */
 
+import org.apache.tools.ant.Project;
 import org.apache.tools.ant.Target;
 
-public class TargetExecutorImpl implements TargetExecutor {
-    public void executeTarget(final Target target) {
-        target.performTasks();
-    }
+// This is a horrible interface which is only here because I want to unit test
+// various calls into the Ant infrastructure which are final for no apparent
+// reason and so can't be mocked by JMock
+public interface AntWrapper {
+    public void executeTarget(Target target);
+
+    public void topologicalSortProject(Project project, String[] roots,
+                                       boolean returnAll);
+
 }

@@ -20,10 +20,10 @@ import org.apache.tools.ant.Target;
 
 public class DependencyGraphEntryFactoryImpl implements DependencyGraphEntryFactory {
     private final TargetExecutionNotifier targetExecutionNotifier;
-    private final TargetExecutor targetExecutor;
+    private final AntWrapper targetExecutor;
 
     public DependencyGraphEntryFactoryImpl(final TargetExecutionNotifier targetExecutionNotifier,
-                                           final TargetExecutor targetExecutor) {
+                                           final AntWrapper targetExecutor) {
         this.targetExecutionNotifier = targetExecutionNotifier;
         this.targetExecutor = targetExecutor;
     }

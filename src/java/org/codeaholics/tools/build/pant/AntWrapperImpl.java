@@ -16,10 +16,16 @@ package org.codeaholics.tools.build.pant;
  *   limitations under the License.
  */
 
+import org.apache.tools.ant.Project;
 import org.apache.tools.ant.Target;
 
-// This is a horrible interface which is only here because I want to unit test a call to Target.performTask() which
-// is final and can't be mocked by JMock
-public interface TargetExecutor {
-    public void executeTarget(Target target);
+public class AntWrapperImpl implements AntWrapper {
+    public void executeTarget(final Target target) {
+        target.performTasks();
+    }
+
+    public void topologicalSortProject(final Project project, final String[] roots,
+                                       final boolean returnAll) {
+        project.topoSort(roots, project.getTargets(), returnAll);
+    }
 }

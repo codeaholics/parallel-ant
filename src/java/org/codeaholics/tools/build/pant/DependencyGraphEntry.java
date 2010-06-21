@@ -24,14 +24,14 @@ import org.apache.tools.ant.Target;
 public class DependencyGraphEntry implements Runnable {
     private final Target target;
     private final TargetExecutionNotifier executionNotifier;
-    private final TargetExecutor targetExecutor;
+    private final AntWrapper targetExecutor;
     private final Set<String> predecessors = new HashSet<String>();
     private final Set<String> successors = new HashSet<String>();
 
     private TargetState state = TargetState.WAITING;
 
     public DependencyGraphEntry(final Target target, final TargetExecutionNotifier executionNotifier,
-                                final TargetExecutor targetExecutor) {
+                                final AntWrapper targetExecutor) {
         this.target = target;
         this.executionNotifier = executionNotifier;
         this.targetExecutor = targetExecutor;

@@ -44,14 +44,16 @@
         
     <target name="compile-src">
         <mkdir dir="${classes.java.dir}"/>
-        <javac srcdir="${src.java.dir}" destdir="${classes.java.dir}">
+        <javac srcdir="${src.java.dir}" destdir="${classes.java.dir}"
+               includeantruntime="true">
             <classpath refid="classpath"/>
         </javac>
     </target>
     
     <target name="compile-test" depends="compile-src">
         <mkdir dir="${classes.test.dir}"/>
-        <javac srcdir="${src.test.dir}" destdir="${classes.test.dir}">
+        <javac srcdir="${src.test.dir}" destdir="${classes.test.dir}"
+               includeantruntime="true">
             <classpath location="${classes.java.dir}"/>
             <classpath refid="test-classpath"/>
         </javac>

@@ -34,7 +34,7 @@ public class ParallelExecutor implements Executor {
     private DependencyGraph dependencyGraph;
     private DependencyGraphEntry rootDependencyGraphEntry;
     private ExecutorServiceFactory executorServiceFactory = new ExecutorServiceFactoryImpl();
-    private TargetExecutor targetExecutor = new TargetExecutorImpl();
+    private AntWrapper antWrapper = new AntWrapperImpl();
     private ExecutorService executorService;
 
     private int queued;
@@ -45,6 +45,9 @@ public class ParallelExecutor implements Executor {
     @Override
     public void executeTargets(final Project project, final String[] targetNames) throws BuildException {
         final Map<String, Target> targetsByName = project.getTargets();
+
+        // check for cycles and unknown targets
+        antWrapper.topologicalSortProject(project, targetNames, true);
 
         BuildException thrownException = null;
 
@@ -69,13 +72,13 @@ public class ParallelExecutor implements Executor {
         this.executorServiceFactory = executorServiceFactory;
     }
 
-    public void setTargetExecutor(final TargetExecutor targetExecutor) {
-        this.targetExecutor = targetExecutor;
+    public void setAntWrapper(final AntWrapper antWrapper) {
+        this.antWrapper = antWrapper;
     }
 
     private void executeTarget(final Target target, final Map<String, Target> targetsByName) {
         final DependencyGraphEntryFactory dependencyGraphEntryFactory =
-            new DependencyGraphEntryFactoryImpl(getTargetExecutionNotifier(), targetExecutor);
+            new DependencyGraphEntryFactoryImpl(getTargetExecutionNotifier(), antWrapper);
         dependencyGraph = new DependencyGraph(targetsByName, dependencyGraphEntryFactory);
         rootDependencyGraphEntry = dependencyGraph.buildDependencies(target);
 

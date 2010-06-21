@@ -81,6 +81,7 @@ public class ParallelExecutorTest {
         targets.put(TARGET_NAME2, target2WithNoDependencies);
 
         allowNormalInteractions(targets, false);
+        ignoreExecuteTarget();
 
         mockery.checking(new Expectations() {{
             one(executorService).submit(with(dependencyGraphEntryReferencingTarget(target1WithNoDependencies)));
@@ -100,6 +101,7 @@ public class ParallelExecutorTest {
         targets.put(TARGET_NAME2, target2WithNoDependencies);
 
         allowNormalInteractions(targets, true);
+        ignoreExecuteTarget();
 
         mockery.checking(new Expectations() {{
             one(executorService).submit(with(dependencyGraphEntryReferencingTarget(target1WithNoDependencies)));
@@ -119,6 +121,12 @@ public class ParallelExecutorTest {
         targets.put(TARGET_NAME2, target2WithNoDependencies);
 
         allowNormalInteractions(targets, true);
+        parallelExecutor.setAntWrapper(new TopologicalSortSkippingAntWrapper() {
+            @Override
+            public void executeTarget(final Target target) {
+                target.execute();
+            }
+        });
 
         mockery.checking(new Expectations() {{
             one(executorService).submit(with(dependencyGraphEntryReferencingTarget(target1WithNoDependencies)));
@@ -142,36 +150,55 @@ public class ParallelExecutorTest {
         // Used by the custom targetExecutor to record tasks as they run. Could be a Target[1] instead.
         final AtomicReference<Target> lastRunTarget = new AtomicReference<Target>(null);
 
-        parallelExecutor.setTargetExecutor(new TargetExecutor() {
+        parallelExecutor.setAntWrapper(new TopologicalSortSkippingAntWrapper() {
             @Override
             public void executeTarget(final Target target) {
                 lastRunTarget.set(target);
             }
         });
 
-        // We can't do this with a state, because, in theory, target1 and target2 could be run in any order.
-        final Sequence sequence = mockery.sequence("executor shutdown after execution of target 3");
+        final Sequence t1 = mockery.sequence("target 1 then target 3 then shutdown");
+        final Sequence t2 = mockery.sequence("target 2 then target 3 then shutdown");
 
         mockery.checking(new Expectations() {{
             one(executorService).submit(with(dependencyGraphEntryReferencingTarget(target1WithNoDependencies)));
+            inSequence(t1);
             will(runTarget());
 
             one(executorService).submit(with(dependencyGraphEntryReferencingTarget(target2WithNoDependencies)));
+            inSequence(t2);
             will(runTarget());
 
             one(executorService).submit(with(dependencyGraphEntryReferencingTarget(target3DependingOnTargets1And2)));
-            inSequence(sequence);
+            inSequences(t1, t2);
             will(runTarget());
 
             one(executorService).shutdown();
-            inSequence(sequence);
+            inSequences(t1, t2);
         }});
 
         parallelExecutor.executeTargets(project, new String[] {TARGET_NAME3});
 
-        // This test relies on the fact that targets are executed as soon as they are submitted (the custom action in
-        // runTarget()).
         assertThat(lastRunTarget.get(), equalTo(target3DependingOnTargets1And2));
+    }
+
+    @Test(expected = BuildException.class)
+    public void testChecksForCyclesAndPropogatesBuildExceptions() {
+        final String[] targets = {"target1", "target2", "target3"};
+
+        final AntWrapper antWrapper = mockery.mock(AntWrapper.class);
+
+        mockery.checking(new Expectations() {{
+            atLeast(1).of(antWrapper).topologicalSortProject(with(same(project)), with(targets), with(true));
+            will(throwException(new BuildException()));
+
+            atLeast(1).of(project).getTargets(); // wrapper should fetch targets
+
+            never(antWrapper).executeTarget(with(any(Target.class)));
+        }});
+
+        parallelExecutor.setAntWrapper(antWrapper);
+        parallelExecutor.executeTargets(project, targets);
     }
 
     private void allowNormalInteractions(final Hashtable<String, Target> targets, final boolean keepGoingMode) throws InterruptedException {
@@ -188,6 +215,15 @@ public class ParallelExecutorTest {
             allowing(executorService).awaitTermination(with(any(Long.TYPE)), with(any(TimeUnit.class)));
             will(returnValue(true));
         }});
+    }
+
+    private void ignoreExecuteTarget() {
+        parallelExecutor.setAntWrapper(new TopologicalSortSkippingAntWrapper() {
+            @Override
+            public void executeTarget(final Target target) {
+                // do nothing;
+            }
+        });
     }
 
     private static Action runTarget() {
@@ -213,5 +249,12 @@ public class ParallelExecutorTest {
                 return dependencyGraphEntry.getTarget() == target;
             }
         };
+    }
+
+    public abstract static class TopologicalSortSkippingAntWrapper implements AntWrapper {
+        @Override
+        public void topologicalSortProject(final Project project, final String[] roots, final boolean returnAll) {
+            // do nothing
+        }
     }
 }

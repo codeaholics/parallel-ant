@@ -28,7 +28,7 @@ import org.apache.tools.ant.util.FileUtils;
 import org.apache.tools.ant.util.StringUtils;
 
 public class ParallelExecutorLogger extends DefaultLogger {
-    private static final int LEFT_COLUMN_SIZE = 26;
+//    private static final int LEFT_COLUMN_SIZE = 26;
 
     private static final String STARTED_SYMBOL = "+ ";
     private static final String FINISHED_SYMBOL = "- ";
