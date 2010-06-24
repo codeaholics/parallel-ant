@@ -6,9 +6,8 @@ There are a number of known issues and missing functionality. Please see
    
 for more details and to raise issues/requests.
 
-Note in particular, the some of the error handling is not yet complete,
-detection of cycles in your ant dependencies are not detected and will probably
-just lead to an infite loop, and the number of threads is currently fixed at 2
-and not configurable (despite the 'pant' shell script giving that appearance!)
+Note in particular, the some of the error handling is not yet complete, and the
+number of threads is currently fixed at 2 and not configurable (despite the
+'pant' shell script giving that appearance!)
 
 See the included 'pant' shell script for details of how to run Parallel Ant.

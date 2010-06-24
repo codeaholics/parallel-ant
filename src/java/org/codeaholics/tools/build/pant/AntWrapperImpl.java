@@ -20,10 +20,12 @@ import org.apache.tools.ant.Project;
 import org.apache.tools.ant.Target;
 
 public class AntWrapperImpl implements AntWrapper {
+    @Override
     public void executeTarget(final Target target) {
         target.performTasks();
     }
 
+    @Override
     public void topologicalSortProject(final Project project, final String[] roots,
                                        final boolean returnAll) {
         project.topoSort(roots, project.getTargets(), returnAll);

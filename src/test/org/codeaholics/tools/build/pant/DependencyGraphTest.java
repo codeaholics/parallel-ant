@@ -159,7 +159,6 @@ public class DependencyGraphTest {
         return new HashSet<T>(Arrays.asList(objects));
     }
 
-
     private Matcher<List<DependencyGraphEntry>> equalToUnsortedList(final DependencyGraphEntry... dependencyGraphEntries) {
         return new TypeSafeMatcher<List<DependencyGraphEntry>>() {
             @Override
@@ -177,5 +176,4 @@ public class DependencyGraphTest {
             }
         };
     }
-
 }
