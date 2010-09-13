@@ -27,11 +27,13 @@ import org.apache.tools.ant.Target;
 public class DependencyGraph {
     private final Map<String, DependencyGraphEntry> dependencyGraphEntries = new HashMap<String, DependencyGraphEntry>();
     private final Map<String, Target> targets;
+    private final List<String> prePhaseTargets;
     private final DependencyGraphEntryFactory dependencyGraphEntryFactory;
 
-    public DependencyGraph(final Map<String, Target> targets,
+    public DependencyGraph(final Map<String, Target> targets, final List<String> prePhaseTargets,
                            final DependencyGraphEntryFactory dependencyGraphEntryFactory) {
         this.targets = targets;
+        this.prePhaseTargets = prePhaseTargets;
         this.dependencyGraphEntryFactory = dependencyGraphEntryFactory;
     }
 
@@ -43,7 +45,9 @@ public class DependencyGraph {
             return dependencyGraphEntries.get(targetName);
         }
 
-        final DependencyGraphEntry dependencyGraphEntry = dependencyGraphEntryFactory.create(target);
+        final boolean isPrePhase = prePhaseTargets.contains(targetName);
+
+        final DependencyGraphEntry dependencyGraphEntry = dependencyGraphEntryFactory.create(target, isPrePhase);
         dependencyGraphEntries.put(targetName, dependencyGraphEntry);
 
         processDependencies(dependencyGraphEntry);
@@ -74,24 +78,6 @@ public class DependencyGraph {
         }
 
         return schedulableTargets;
-    }
-
-    public void dump() {
-        System.out.println("=========================================================");
-        for (final DependencyGraphEntry dependencyGraphEntry: dependencyGraphEntries.values()) {
-            System.out.println("Target name:  " + dependencyGraphEntry.getTarget().getName());
-            System.out.print("Predecessors: ");
-            for (final String predecessor: dependencyGraphEntry.getPredecessors()) {
-                System.out.print(predecessor + ", ");
-            }
-            System.out.println();
-            System.out.print("Successors:   ");
-            for (final String successor: dependencyGraphEntry.getSuccessors()) {
-                System.out.print(successor + ", ");
-            }
-            System.out.println();
-            System.out.println("=========================================================");
-        }
     }
 
     private boolean isReadyToSchedule(final DependencyGraphEntry dependencyGraphEntry) {

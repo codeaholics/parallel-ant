@@ -16,8 +16,13 @@ package org.codeaholics.tools.build.pant;
  *   limitations under the License.
  */
 
+import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Target;
 
-public interface DependencyGraphEntryFactory {
-    public DependencyGraphEntry create(Target target, boolean isPrePhase);
+public class UnknownPrivateTargetException extends BuildException {
+    private static final long serialVersionUID = 6084380693932625320L;
+
+    public UnknownPrivateTargetException(final Target target) {
+        super("Unknown private target: " + target.getName(), target.getLocation());
+    }
 }

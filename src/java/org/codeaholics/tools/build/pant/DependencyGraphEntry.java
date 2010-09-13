@@ -23,16 +23,20 @@ import org.apache.tools.ant.Target;
 
 public class DependencyGraphEntry implements Runnable {
     private final Target target;
+    private final boolean isPrePhase;
     private final TargetExecutionNotifier executionNotifier;
     private final AntWrapper targetExecutor;
+
     private final Set<String> predecessors = new HashSet<String>();
     private final Set<String> successors = new HashSet<String>();
 
     private TargetState state = TargetState.WAITING;
 
-    public DependencyGraphEntry(final Target target, final TargetExecutionNotifier executionNotifier,
+    public DependencyGraphEntry(final Target target, final boolean isPrePhase,
+                                final TargetExecutionNotifier executionNotifier,
                                 final AntWrapper targetExecutor) {
         this.target = target;
+        this.isPrePhase = isPrePhase;
         this.executionNotifier = executionNotifier;
         this.targetExecutor = targetExecutor;
     }
@@ -63,6 +67,10 @@ public class DependencyGraphEntry implements Runnable {
 
     public boolean isTargetWaiting() {
         return state == TargetState.WAITING;
+    }
+
+    public boolean isPrePhase() {
+        return isPrePhase;
     }
 
     public void setState(final TargetState state) {

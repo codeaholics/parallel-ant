@@ -66,11 +66,12 @@ public class DependencyGraphTest {
         final DependencyGraphEntry dependencyGraphEntry = createDependencyGraphEntry(target);
 
         mockery.checking(new Expectations() {{
-            one(dependencyGraphEntryFactory).create(target);  // only calls the factory once
+            one(dependencyGraphEntryFactory).create(target, false);  // only calls the factory once
             will(returnValue(dependencyGraphEntry));
         }});
 
-        final DependencyGraph dependencyGraph = new DependencyGraph(targetMap, dependencyGraphEntryFactory);
+        @SuppressWarnings("unchecked")
+        final DependencyGraph dependencyGraph = new DependencyGraph(targetMap, Collections.EMPTY_LIST, dependencyGraphEntryFactory);
 
         // both the first and second call for the same target return the same graph entry
         assertThat(dependencyGraph.buildDependencies(target), sameInstance(dependencyGraphEntry));
@@ -84,7 +85,8 @@ public class DependencyGraphTest {
         final Target target3 = createAndAddTarget(TARGET_NAME3, TARGET_NAME1);
         final Target target4 = createAndAddTarget(TARGET_NAME4, TARGET_NAME2, TARGET_NAME3);
 
-        final DependencyGraph dependencyGraph = new DependencyGraph(targetMap, dependencyGraphEntryFactory);
+        @SuppressWarnings("unchecked")
+        final DependencyGraph dependencyGraph = new DependencyGraph(targetMap, Collections.EMPTY_LIST, dependencyGraphEntryFactory);
 
         final DependencyGraphEntry dependencyGraphEntryForTarget1 = expectCreateDependencyGraphEntry(target1);
         expectCreateDependencyGraphEntry(target2);
@@ -103,7 +105,8 @@ public class DependencyGraphTest {
         final Target target3 = createAndAddTarget(TARGET_NAME3, TARGET_NAME1);
         final Target target4 = createAndAddTarget(TARGET_NAME4, TARGET_NAME2, TARGET_NAME3);
 
-        final DependencyGraph dependencyGraph = new DependencyGraph(targetMap, dependencyGraphEntryFactory);
+        @SuppressWarnings("unchecked")
+        final DependencyGraph dependencyGraph = new DependencyGraph(targetMap, Collections.EMPTY_LIST, dependencyGraphEntryFactory);
 
         final DependencyGraphEntry dependencyGraphEntryForTarget1 = expectCreateDependencyGraphEntry(target1);
         final DependencyGraphEntry dependencyGraphEntryForTarget2 = expectCreateDependencyGraphEntry(target2);
@@ -136,7 +139,7 @@ public class DependencyGraphTest {
         final DependencyGraphEntry dependencyGraphEntry = createDependencyGraphEntry(target);
 
         mockery.checking(new Expectations() {{
-            one(dependencyGraphEntryFactory).create(target);
+            one(dependencyGraphEntryFactory).create(target, false);
             will(returnValue(dependencyGraphEntry));
         }});
 
@@ -151,15 +154,15 @@ public class DependencyGraphTest {
         return target;
     }
 
-    private DependencyGraphEntry createDependencyGraphEntry(final Target target) {
-        return new DependencyGraphEntry(target, null, null);
+    private static DependencyGraphEntry createDependencyGraphEntry(final Target target) {
+        return new DependencyGraphEntry(target, false, null, null);
     }
 
-    private <T> Set<T> setOf(final T... objects) {
+    private static <T> Set<T> setOf(final T... objects) {
         return new HashSet<T>(Arrays.asList(objects));
     }
 
-    private Matcher<List<DependencyGraphEntry>> equalToUnsortedList(final DependencyGraphEntry... dependencyGraphEntries) {
+    private static Matcher<List<DependencyGraphEntry>> equalToUnsortedList(final DependencyGraphEntry... dependencyGraphEntries) {
         return new TypeSafeMatcher<List<DependencyGraphEntry>>() {
             @Override
             public void describeTo(final Description description) {

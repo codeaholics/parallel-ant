@@ -29,7 +29,7 @@ public class DependencyGraphEntryFactoryImpl implements DependencyGraphEntryFact
     }
 
     @Override
-    public DependencyGraphEntry create(final Target target) {
-        return new DependencyGraphEntry(target, targetExecutionNotifier, targetExecutor);
+    public DependencyGraphEntry create(final Target target, final boolean isPrePhase) {
+        return new DependencyGraphEntry(target, isPrePhase, targetExecutionNotifier, targetExecutor);
     }
 }

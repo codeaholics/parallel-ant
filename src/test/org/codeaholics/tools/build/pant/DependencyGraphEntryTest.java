@@ -41,7 +41,7 @@ public class DependencyGraphEntryTest {
         targetExecutionNotifier = mockery.mock(TargetExecutionNotifier.class);
         targetExecutor = mockery.mock(AntWrapper.class);
 
-        dependencyGraphEntry = new DependencyGraphEntry(target, targetExecutionNotifier, targetExecutor);
+        dependencyGraphEntry = new DependencyGraphEntry(target, false, targetExecutionNotifier, targetExecutor);
     }
 
     @Test

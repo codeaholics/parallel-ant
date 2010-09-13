@@ -16,17 +16,16 @@ package org.codeaholics.tools.build.pant;
  *   limitations under the License.
  */
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.util.Hashtable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.Target;
+import org.apache.tools.ant.Task;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.jmock.Expectations;
@@ -47,6 +46,9 @@ public class ParallelExecutorTest {
     private static final String TARGET_NAME1 = "targetName1";
     private static final String TARGET_NAME2 = "targetName2";
     private static final String TARGET_NAME3 = "targetName3";
+    private static final String SPARE_TARGET_NAME = "spareTarget";
+    private static final String UNKNOWN_PANT_TARGET_NAME = "pant:unknown";
+    private static final String PANT_PRE_PHASE_TARGET_NAME = "pant:pre-phase";
 
     private Mockery mockery;
     private ParallelExecutor parallelExecutor;
@@ -73,7 +75,7 @@ public class ParallelExecutorTest {
         target3DependingOnTargets1And2 = AntTestHelper.createTarget(mockery, TARGET_NAME3, TARGET_NAME1, TARGET_NAME2);
     }
 
-    @Test(expected = BuildException.class)
+    @Test(expected = ExpectedBuildException.class)
     public void testThrowsExceptionAndStopsOnUnknownTargetWithoutKeepGoingFlag() throws InterruptedException {
         final Hashtable<String, Target> targets = new Hashtable<String, Target>();
 
@@ -81,11 +83,14 @@ public class ParallelExecutorTest {
         targets.put(TARGET_NAME2, target2WithNoDependencies);
 
         allowNormalInteractions(targets, false);
-        ignoreExecuteTarget();
+
+        parallelExecutor.setAntWrapper(new ExceptionThrowingAntWrapper(target1WithNoDependencies));
 
         mockery.checking(new Expectations() {{
             one(executorService).submit(with(dependencyGraphEntryReferencingTarget(target1WithNoDependencies)));
-            will(throwException(new BuildException()));
+            will(runTarget());
+
+            one(executorService).shutdown();
 
             never(executorService).submit(with(dependencyGraphEntryReferencingTarget(target2WithNoDependencies)));
         }});
@@ -93,7 +98,7 @@ public class ParallelExecutorTest {
         parallelExecutor.executeTargets(project, new String[] {TARGET_NAME1, TARGET_NAME2});
     }
 
-    @Test(expected = BuildException.class)
+    @Test(expected = ExpectedBuildException.class)
     public void testThrowsExceptionAfterCompletionOnUnknownTargetWithKeepGoingFlag() throws InterruptedException {
         final Hashtable<String, Target> targets = new Hashtable<String, Target>();
 
@@ -101,13 +106,25 @@ public class ParallelExecutorTest {
         targets.put(TARGET_NAME2, target2WithNoDependencies);
 
         allowNormalInteractions(targets, true);
-        ignoreExecuteTarget();
+
+        parallelExecutor.setAntWrapper(new ExceptionThrowingAntWrapper(target1WithNoDependencies));
+
+        final Sequence sequence = mockery.sequence("targets in specified order; shutdown executor between runs");
 
         mockery.checking(new Expectations() {{
             one(executorService).submit(with(dependencyGraphEntryReferencingTarget(target1WithNoDependencies)));
-            will(throwException(new BuildException()));
+            inSequence(sequence);
+            will(runTarget());
+
+            one(executorService).shutdown();
+            inSequence(sequence);
 
             one(executorService).submit(with(dependencyGraphEntryReferencingTarget(target2WithNoDependencies)));
+            inSequence(sequence);
+            will(runTarget());
+
+            one(executorService).shutdown();
+            inSequence(sequence);
         }});
 
         parallelExecutor.executeTargets(project, new String[] {TARGET_NAME1, TARGET_NAME2});
@@ -121,17 +138,25 @@ public class ParallelExecutorTest {
         targets.put(TARGET_NAME2, target2WithNoDependencies);
 
         allowNormalInteractions(targets, true);
-        parallelExecutor.setAntWrapper(new TopologicalSortSkippingAntWrapper() {
-            @Override
-            public void executeTarget(final Target target) {
-                target.execute();
-            }
-        });
+
+        parallelExecutor.setAntWrapper(new NoOpAntWrapper());
+
+        final Sequence sequence = mockery.sequence("targets in specified order; shutdown executor between runs");
 
         mockery.checking(new Expectations() {{
             one(executorService).submit(with(dependencyGraphEntryReferencingTarget(target1WithNoDependencies)));
+            inSequence(sequence);
+            will(runTarget());
+
+            one(executorService).shutdown();
+            inSequence(sequence);
 
             one(executorService).submit(with(dependencyGraphEntryReferencingTarget(target2WithNoDependencies)));
+            inSequence(sequence);
+            will(runTarget());
+
+            one(executorService).shutdown();
+            inSequence(sequence);
         }});
 
         parallelExecutor.executeTargets(project, new String[] {TARGET_NAME1, TARGET_NAME2});
@@ -147,15 +172,7 @@ public class ParallelExecutorTest {
 
         allowNormalInteractions(targets, true);
 
-        // Used by the custom targetExecutor to record tasks as they run. Could be a Target[1] instead.
-        final AtomicReference<Target> lastRunTarget = new AtomicReference<Target>(null);
-
-        parallelExecutor.setAntWrapper(new TopologicalSortSkippingAntWrapper() {
-            @Override
-            public void executeTarget(final Target target) {
-                lastRunTarget.set(target);
-            }
-        });
+        parallelExecutor.setAntWrapper(new NoOpAntWrapper());
 
         final Sequence t1 = mockery.sequence("target 1 then target 3 then shutdown");
         final Sequence t2 = mockery.sequence("target 2 then target 3 then shutdown");
@@ -178,11 +195,9 @@ public class ParallelExecutorTest {
         }});
 
         parallelExecutor.executeTargets(project, new String[] {TARGET_NAME3});
-
-        assertThat(lastRunTarget.get(), equalTo(target3DependingOnTargets1And2));
     }
 
-    @Test(expected = BuildException.class)
+    @Test(expected = ExpectedBuildException.class)
     public void testChecksForCyclesAndPropogatesBuildExceptions() {
         final String[] targets = {"target1", "target2", "target3"};
 
@@ -190,7 +205,7 @@ public class ParallelExecutorTest {
 
         mockery.checking(new Expectations() {{
             atLeast(1).of(antWrapper).topologicalSortProject(with(same(project)), with(targets), with(true));
-            will(throwException(new BuildException()));
+            will(throwException(new ExpectedBuildException()));
 
             atLeast(1).of(project).getTargets(); // wrapper should fetch targets
 
@@ -199,6 +214,96 @@ public class ParallelExecutorTest {
 
         parallelExecutor.setAntWrapper(antWrapper);
         parallelExecutor.executeTargets(project, targets);
+    }
+
+    @Test(expected = UnknownPrivateTargetException.class)
+    public void testThrowsExceptionOnUnknownPrivateTarget() throws Exception {
+        final Hashtable<String, Target> targets = new Hashtable<String, Target>();
+
+        targets.put(TARGET_NAME1, target1WithNoDependencies);
+        targets.put(UNKNOWN_PANT_TARGET_NAME, AntTestHelper.createTarget(mockery, UNKNOWN_PANT_TARGET_NAME));
+
+        allowNormalInteractions(targets, false);
+
+        final AntWrapper antWrapper = mockery.mock(AntWrapper.class);
+
+        parallelExecutor.setAntWrapper(antWrapper);
+
+        mockery.checking(new Expectations() {{
+            never(executorService).submit(with(any(Runnable.class)));
+
+            never(antWrapper).executeTarget(with(any(Target.class)));
+
+            ignoring(antWrapper);
+        }});
+
+        parallelExecutor.executeTargets(project, new String[] {TARGET_NAME1});
+    }
+
+    @Test(expected = CannotDependOnPrivateTargetException.class)
+    public void testThrowsExceptionIfTargetDependsOnPrivateTarget() throws Exception {
+        final Hashtable<String, Target> targets = new Hashtable<String, Target>();
+
+        final Target prePhaseTarget = AntTestHelper.createTarget(mockery, PANT_PRE_PHASE_TARGET_NAME);
+        targets.put(PANT_PRE_PHASE_TARGET_NAME, prePhaseTarget);
+        targets.put(SPARE_TARGET_NAME, AntTestHelper.createTarget(mockery, SPARE_TARGET_NAME, PANT_PRE_PHASE_TARGET_NAME));
+
+        allowNormalInteractions(targets, false);
+
+        parallelExecutor.setAntWrapper(new FailOnExecuteAntWrapper());
+
+        mockery.checking(new Expectations() {{
+            never(executorService).submit(with(any(Runnable.class)));
+
+            allowing(prePhaseTarget).getTasks();
+            will(returnValue(null));
+        }});
+
+        parallelExecutor.executeTargets(project, new String[] {UNKNOWN_PANT_TARGET_NAME});
+    }
+
+    @Test(expected = CannotExecutePrivateTargetException.class)
+    public void testThrowsExceptionIfAskedToExecuteAPrivateTarget() throws Exception {
+        final Hashtable<String, Target> targets = new Hashtable<String, Target>();
+
+        final Target prePhaseTarget = AntTestHelper.createTarget(mockery, PANT_PRE_PHASE_TARGET_NAME, TARGET_NAME1);
+        targets.put(TARGET_NAME1, target1WithNoDependencies);
+        targets.put(PANT_PRE_PHASE_TARGET_NAME, prePhaseTarget);
+
+        allowNormalInteractions(targets, false);
+
+        parallelExecutor.setAntWrapper(new FailOnExecuteAntWrapper());
+
+        mockery.checking(new Expectations() {{
+            never(executorService).submit(with(any(Runnable.class)));
+
+            allowing(prePhaseTarget).getTasks();
+            will(returnValue(null));
+        }});
+
+        parallelExecutor.executeTargets(project, new String[] {PANT_PRE_PHASE_TARGET_NAME});
+    }
+
+    @Test(expected = PrivateTargetCannotHaveTasksException.class)
+    public void testPrePhaseConfigurationTargetIsNotAllowedToHaveAnyTasks() throws Exception {
+        final Hashtable<String, Target> targets = new Hashtable<String, Target>();
+
+        final Target prePhaseTarget = AntTestHelper.createTarget(mockery, PANT_PRE_PHASE_TARGET_NAME);
+        targets.put(TARGET_NAME1, target1WithNoDependencies);
+        targets.put(PANT_PRE_PHASE_TARGET_NAME, prePhaseTarget);
+
+        allowNormalInteractions(targets, false);
+
+        parallelExecutor.setAntWrapper(new FailOnExecuteAntWrapper());
+
+        mockery.checking(new Expectations() {{
+            allowing(prePhaseTarget).getTasks();
+            will(returnValue(new Task[] {null}));
+
+            never(executorService).submit(with(any(Runnable.class)));
+        }});
+
+        parallelExecutor.executeTargets(project, new String[] {TARGET_NAME1});
     }
 
     private void allowNormalInteractions(final Hashtable<String, Target> targets, final boolean keepGoingMode) throws InterruptedException {
@@ -215,15 +320,6 @@ public class ParallelExecutorTest {
             allowing(executorService).awaitTermination(with(any(Long.TYPE)), with(any(TimeUnit.class)));
             will(returnValue(true));
         }});
-    }
-
-    private void ignoreExecuteTarget() {
-        parallelExecutor.setAntWrapper(new TopologicalSortSkippingAntWrapper() {
-            @Override
-            public void executeTarget(final Target target) {
-                // do nothing;
-            }
-        });
     }
 
     private static Action runTarget() {
@@ -251,10 +347,43 @@ public class ParallelExecutorTest {
         };
     }
 
-    public abstract static class TopologicalSortSkippingAntWrapper implements AntWrapper {
+    private abstract static class TopologicalSortSkippingAntWrapper implements AntWrapper {
         @Override
         public void topologicalSortProject(final Project project, final String[] roots, final boolean returnAll) {
             // do nothing
         }
+    }
+
+    private static final class ExceptionThrowingAntWrapper extends TopologicalSortSkippingAntWrapper {
+        private final Target exceptionTarget;
+
+        public ExceptionThrowingAntWrapper(final Target exceptionTarget) {
+            this.exceptionTarget = exceptionTarget;
+        }
+
+        @Override
+        public void executeTarget(final Target target) {
+            if (target == exceptionTarget) {
+                throw new ExpectedBuildException();
+            }
+        }
+    }
+
+    private static final class FailOnExecuteAntWrapper extends TopologicalSortSkippingAntWrapper {
+        @Override
+        public void executeTarget(final Target target) {
+            fail("No targets should be executed");
+        }
+    }
+
+    private static final class NoOpAntWrapper extends TopologicalSortSkippingAntWrapper {
+        @Override
+        public void executeTarget(final Target target) {
+            // do nothing;
+        }
+    }
+
+    private static final class ExpectedBuildException extends BuildException {
+        private static final long serialVersionUID = 8043165801092558640L;
     }
 }

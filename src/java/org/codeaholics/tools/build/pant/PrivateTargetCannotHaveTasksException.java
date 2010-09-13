@@ -16,8 +16,13 @@ package org.codeaholics.tools.build.pant;
  *   limitations under the License.
  */
 
+import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Target;
 
-public interface DependencyGraphEntryFactory {
-    public DependencyGraphEntry create(Target target, boolean isPrePhase);
+public class PrivateTargetCannotHaveTasksException extends BuildException {
+    private static final long serialVersionUID = 6084380693932625320L;
+
+    public PrivateTargetCannotHaveTasksException(final Target target) {
+        super("Private target cannot have tasks: " + target.getName(), target.getLocation());
+    }
 }

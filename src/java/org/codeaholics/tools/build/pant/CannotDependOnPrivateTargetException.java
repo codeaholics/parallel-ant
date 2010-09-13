@@ -16,8 +16,12 @@ package org.codeaholics.tools.build.pant;
  *   limitations under the License.
  */
 
-import org.apache.tools.ant.Target;
+import org.apache.tools.ant.BuildException;
 
-public interface DependencyGraphEntryFactory {
-    public DependencyGraphEntry create(Target target, boolean isPrePhase);
+public class CannotDependOnPrivateTargetException extends BuildException {
+    private static final long serialVersionUID = 6084380693932625320L;
+
+    public CannotDependOnPrivateTargetException(final String targetName) {
+        super("Target cannot depend on a private target: " + targetName);
+    }
 }

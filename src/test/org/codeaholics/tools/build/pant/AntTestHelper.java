@@ -30,6 +30,8 @@ public class AntTestHelper {
 
             allowing(target).getDependencies();
             will(returnEnumeration(dependencies));
+
+            allowing(target).getLocation();
         }});
 
         return target;
