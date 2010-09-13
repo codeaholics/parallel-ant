@@ -19,14 +19,7 @@
     
     <property name="dist.dir" value="${build.dir}"/>
     
-    <path id="classpath">
-        <!-- Ant not needed on build/test classpath because we're running under Ant, so it's already put itself on --> 
-        <!-- the path -->
-        <!-- <pathelement path="${lib.dir}/apache-ant-1.7.0/ant-1.7.0.jar" />  -->
-    </path>
-        
     <path id="test-classpath">
-        <path refid="classpath"/>
         <pathelement location="${lib.dir}/junit-4.8.2/junit-4.8.2.jar"/>
         <fileset dir="${lib.dir}/jmock-2.5.1">
             <include name="jmock-2.5.1.jar"/>
@@ -44,16 +37,12 @@
         
     <target name="compile-src">
         <mkdir dir="${classes.java.dir}"/>
-        <javac srcdir="${src.java.dir}" destdir="${classes.java.dir}"
-               includeantruntime="true">
-            <classpath refid="classpath"/>
-        </javac>
+        <javac srcdir="${src.java.dir}" destdir="${classes.java.dir}" includeantruntime="true"/>
     </target>
     
     <target name="compile-test" depends="compile-src">
         <mkdir dir="${classes.test.dir}"/>
-        <javac srcdir="${src.test.dir}" destdir="${classes.test.dir}"
-               includeantruntime="true">
+        <javac srcdir="${src.test.dir}" destdir="${classes.test.dir}" includeantruntime="true">
             <classpath location="${classes.java.dir}"/>
             <classpath refid="test-classpath"/>
         </javac>
