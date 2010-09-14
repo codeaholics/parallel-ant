@@ -16,9 +16,10 @@ package org.codeaholics.tools.build.pant;
  *   limitations under the License.
  */
 
-import static org.junit.Assert.fail;
-
+import java.util.Collection;
 import java.util.Hashtable;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -40,6 +41,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.internal.matchers.TypeSafeMatcher;
 import org.junit.runner.RunWith;
+
+import static org.codeaholics.tools.build.pant.AntTestHelper.*;
+
+import static org.hamcrest.Matchers.*;
+
+import static org.junit.Assert.*;
 
 @RunWith(JMock.class)
 public class ParallelExecutorTest {
@@ -70,9 +77,9 @@ public class ParallelExecutorTest {
         parallelExecutor.setExecutorServiceFactory(executorServiceFactory);
         project = mockery.mock(Project.class);
 
-        target1WithNoDependencies = AntTestHelper.createTarget(mockery, TARGET_NAME1);
-        target2WithNoDependencies = AntTestHelper.createTarget(mockery, TARGET_NAME2);
-        target3DependingOnTargets1And2 = AntTestHelper.createTarget(mockery, TARGET_NAME3, TARGET_NAME1, TARGET_NAME2);
+        target1WithNoDependencies = createTarget(mockery, TARGET_NAME1);
+        target2WithNoDependencies = createTarget(mockery, TARGET_NAME2);
+        target3DependingOnTargets1And2 = createTarget(mockery, TARGET_NAME3, TARGET_NAME1, TARGET_NAME2);
     }
 
     @Test(expected = ExpectedBuildException.class)
@@ -137,7 +144,7 @@ public class ParallelExecutorTest {
         targets.put(TARGET_NAME1, target1WithNoDependencies);
         targets.put(TARGET_NAME2, target2WithNoDependencies);
 
-        allowNormalInteractions(targets, true);
+        allowNormalInteractions(targets, false);
 
         parallelExecutor.setAntWrapper(new NoOpAntWrapper());
 
@@ -170,7 +177,7 @@ public class ParallelExecutorTest {
         targets.put(TARGET_NAME2, target2WithNoDependencies);
         targets.put(TARGET_NAME3, target3DependingOnTargets1And2);
 
-        allowNormalInteractions(targets, true);
+        allowNormalInteractions(targets, false);
 
         parallelExecutor.setAntWrapper(new NoOpAntWrapper());
 
@@ -221,7 +228,7 @@ public class ParallelExecutorTest {
         final Hashtable<String, Target> targets = new Hashtable<String, Target>();
 
         targets.put(TARGET_NAME1, target1WithNoDependencies);
-        targets.put(UNKNOWN_PANT_TARGET_NAME, AntTestHelper.createTarget(mockery, UNKNOWN_PANT_TARGET_NAME));
+        targets.put(UNKNOWN_PANT_TARGET_NAME, createTarget(mockery, UNKNOWN_PANT_TARGET_NAME));
 
         allowNormalInteractions(targets, false);
 
@@ -244,9 +251,9 @@ public class ParallelExecutorTest {
     public void testThrowsExceptionIfTargetDependsOnPrivateTarget() throws Exception {
         final Hashtable<String, Target> targets = new Hashtable<String, Target>();
 
-        final Target prePhaseTarget = AntTestHelper.createTarget(mockery, PANT_PRE_PHASE_TARGET_NAME);
+        final Target prePhaseTarget = createTarget(mockery, PANT_PRE_PHASE_TARGET_NAME);
         targets.put(PANT_PRE_PHASE_TARGET_NAME, prePhaseTarget);
-        targets.put(SPARE_TARGET_NAME, AntTestHelper.createTarget(mockery, SPARE_TARGET_NAME, PANT_PRE_PHASE_TARGET_NAME));
+        targets.put(SPARE_TARGET_NAME, createTarget(mockery, SPARE_TARGET_NAME, PANT_PRE_PHASE_TARGET_NAME));
 
         allowNormalInteractions(targets, false);
 
@@ -266,7 +273,7 @@ public class ParallelExecutorTest {
     public void testThrowsExceptionIfAskedToExecuteAPrivateTarget() throws Exception {
         final Hashtable<String, Target> targets = new Hashtable<String, Target>();
 
-        final Target prePhaseTarget = AntTestHelper.createTarget(mockery, PANT_PRE_PHASE_TARGET_NAME, TARGET_NAME1);
+        final Target prePhaseTarget = createTarget(mockery, PANT_PRE_PHASE_TARGET_NAME, TARGET_NAME1);
         targets.put(TARGET_NAME1, target1WithNoDependencies);
         targets.put(PANT_PRE_PHASE_TARGET_NAME, prePhaseTarget);
 
@@ -288,7 +295,7 @@ public class ParallelExecutorTest {
     public void testPrePhaseConfigurationTargetIsNotAllowedToHaveAnyTasks() throws Exception {
         final Hashtable<String, Target> targets = new Hashtable<String, Target>();
 
-        final Target prePhaseTarget = AntTestHelper.createTarget(mockery, PANT_PRE_PHASE_TARGET_NAME);
+        final Target prePhaseTarget = createTarget(mockery, PANT_PRE_PHASE_TARGET_NAME);
         targets.put(TARGET_NAME1, target1WithNoDependencies);
         targets.put(PANT_PRE_PHASE_TARGET_NAME, prePhaseTarget);
 
@@ -304,6 +311,66 @@ public class ParallelExecutorTest {
         }});
 
         parallelExecutor.executeTargets(project, new String[] {TARGET_NAME1});
+    }
+
+    @Test
+    public void testSchedulesAllAvailableTasks() throws Exception {
+        final Hashtable<String, Target> targets = new Hashtable<String, Target>();
+
+        targets.put(TARGET_NAME1, target1WithNoDependencies);
+        targets.put(TARGET_NAME2, target2WithNoDependencies);
+        targets.put(TARGET_NAME3, target3DependingOnTargets1And2);
+
+        allowNormalInteractions(targets, false);
+
+        parallelExecutor.setAntWrapper(new NoOpAntWrapper());
+
+        final List<DependencyGraphEntry> scheduledTargets = new LinkedList<DependencyGraphEntry>();
+
+        mockery.checking(new Expectations() {{
+            allowing(executorService).submit(with(any(Runnable.class)));
+            will(recordRunnableIn(scheduledTargets));
+        }});
+
+        parallelExecutor.executeTargets(project, new String[] {TARGET_NAME3});
+
+        assertThat(scheduledTargets, hasDependencyGraphEntriesForTargets(target1WithNoDependencies, target2WithNoDependencies));
+    }
+
+    @Test
+    public void testSchedulesPrePhaseTargetsCorrectly() throws Exception {
+        final Hashtable<String, Target> targets = new Hashtable<String, Target>();
+
+        final Target prePhaseTarget = createTarget(mockery, PANT_PRE_PHASE_TARGET_NAME, TARGET_NAME1);
+        targets.put(TARGET_NAME1, target1WithNoDependencies);
+        targets.put(TARGET_NAME2, target2WithNoDependencies);
+        targets.put(TARGET_NAME3, target3DependingOnTargets1And2);
+        targets.put(PANT_PRE_PHASE_TARGET_NAME, prePhaseTarget);
+
+        allowNormalInteractions(targets, false);
+
+        parallelExecutor.setAntWrapper(new NoOpAntWrapper());
+
+        final List<DependencyGraphEntry> scheduledTargets = new LinkedList<DependencyGraphEntry>();
+
+        mockery.checking(new Expectations() {{
+            allowing(executorService).submit(with(any(Runnable.class)));
+            will(recordRunnableIn(scheduledTargets));
+
+            ignoring(prePhaseTarget).getTasks();
+            will(returnValue(null));
+        }});
+
+        parallelExecutor.executeTargets(project, new String[] {TARGET_NAME3});
+
+        // only target 1 is scheduled at this point
+        assertThat(scheduledTargets, hasDependencyGraphEntriesForTargets(target1WithNoDependencies));
+
+        // allow target 1 to complete
+        scheduledTargets.remove(0).run();
+
+        // now target 2 should be released
+        assertThat(scheduledTargets, hasDependencyGraphEntriesForTargets(target2WithNoDependencies));
     }
 
     private void allowNormalInteractions(final Hashtable<String, Target> targets, final boolean keepGoingMode) throws InterruptedException {
@@ -326,8 +393,17 @@ public class ParallelExecutorTest {
         return new CustomAction("run target") {
             @Override
             public Object invoke(final Invocation invocation) throws Throwable {
-                final DependencyGraphEntry dependencyGraphEntry = (DependencyGraphEntry)invocation.getParameter(0);
-                dependencyGraphEntry.run();
+                ((DependencyGraphEntry)invocation.getParameter(0)).run();
+                return null;
+            }
+        };
+    }
+
+    private static Action recordRunnableIn(final List<DependencyGraphEntry> scheduledTargets) {
+        return new CustomAction("record target") {
+            @Override
+            public Object invoke(final Invocation invocation) throws Throwable {
+                scheduledTargets.add((DependencyGraphEntry)invocation.getParameter(0));
                 return null;
             }
         };
@@ -343,6 +419,30 @@ public class ParallelExecutorTest {
             @Override
             public boolean matchesSafely(final DependencyGraphEntry dependencyGraphEntry) {
                 return dependencyGraphEntry.getTarget() == target;
+            }
+        };
+    }
+
+    private static Matcher<Collection<DependencyGraphEntry>> hasDependencyGraphEntriesForTargets(final Target... targets) {
+        return new TypeSafeMatcher<Collection<DependencyGraphEntry>>() {
+            @Override
+            public void describeTo(final Description description) {
+                description.appendText("a list of dependency graph entries referencing exactly " + targets.length + " targets ");
+                description.appendValueList("[", ",", "]", targets);
+            }
+
+            @Override
+            public boolean matchesSafely(final Collection<DependencyGraphEntry> dependencyGraphEntries) {
+                if (dependencyGraphEntries.size() != targets.length) {
+                    return false;
+                }
+
+                for (final Target target: targets) {
+                    if (!hasItem(dependencyGraphEntryReferencingTarget(target)).matches(dependencyGraphEntries)) {
+                        return false;
+                    }
+                }
+                return true;
             }
         };
     }
