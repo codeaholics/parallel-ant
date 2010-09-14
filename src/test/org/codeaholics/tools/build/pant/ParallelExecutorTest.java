@@ -16,6 +16,11 @@ package org.codeaholics.tools.build.pant;
  *   limitations under the License.
  */
 
+import static org.codeaholics.tools.build.pant.AntTestHelper.createTarget;
+import static org.hamcrest.Matchers.hasItem;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.LinkedList;
@@ -41,12 +46,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.internal.matchers.TypeSafeMatcher;
 import org.junit.runner.RunWith;
-
-import static org.codeaholics.tools.build.pant.AntTestHelper.*;
-
-import static org.hamcrest.Matchers.*;
-
-import static org.junit.Assert.*;
 
 @RunWith(JMock.class)
 public class ParallelExecutorTest {
@@ -371,6 +370,30 @@ public class ParallelExecutorTest {
 
         // now target 2 should be released
         assertThat(scheduledTargets, hasDependencyGraphEntriesForTargets(target2WithNoDependencies));
+    }
+
+    @Test(expected = PrePhaseTargetCanOnlyDependOnPrePhaseTargetsException.class)
+    public void testPrePhaseTargetsCannotDependOnNonPrePhaseTargets() throws Exception {
+        final Hashtable<String, Target> targets = new Hashtable<String, Target>();
+
+        final Target prePhaseTarget = createTarget(mockery, PANT_PRE_PHASE_TARGET_NAME, TARGET_NAME3);
+        targets.put(TARGET_NAME1, target1WithNoDependencies);
+        targets.put(TARGET_NAME2, target2WithNoDependencies);
+        targets.put(TARGET_NAME3, target3DependingOnTargets1And2);
+        targets.put(PANT_PRE_PHASE_TARGET_NAME, prePhaseTarget);
+
+        allowNormalInteractions(targets, false);
+
+        parallelExecutor.setAntWrapper(new FailOnExecuteAntWrapper());
+
+        mockery.checking(new Expectations() {{
+            allowing(prePhaseTarget).getTasks();
+            will(returnValue(null));
+
+            never(executorService).submit(with(any(Runnable.class)));
+        }});
+
+        parallelExecutor.executeTargets(project, new String[] {TARGET_NAME3});
     }
 
     private void allowNormalInteractions(final Hashtable<String, Target> targets, final boolean keepGoingMode) throws InterruptedException {

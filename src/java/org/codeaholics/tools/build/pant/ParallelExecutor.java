@@ -51,15 +51,17 @@ public class ParallelExecutor implements Executor {
 
     private boolean isPrePhase;
 
-    @SuppressWarnings("unchecked")
     @Override
     public void executeTargets(final Project project, final String[] targetNames) throws BuildException {
+        @SuppressWarnings("unchecked")
         final Map<String, Target> targetsByName = project.getTargets();
 
         // check for cycles and unknown targets
         antWrapper.topologicalSortProject(project, targetNames, true);
 
         configure(targetsByName);
+
+        verifyPrePhaseTargets(targetsByName);
 
         BuildException thrownException = null;
 
@@ -207,6 +209,20 @@ public class ParallelExecutor implements Executor {
         final Enumeration<String> dependencies = prePhaseConfig.getDependencies();
         while (dependencies.hasMoreElements()) {
             prePhaseTargets.add(dependencies.nextElement());
+        }
+    }
+
+    private void verifyPrePhaseTargets(final Map<String, Target> targetsByName) {
+        for (final String prePhaseTargetName: prePhaseTargets) {
+            final Target prePhaseTarget = targetsByName.get(prePhaseTargetName);
+
+            @SuppressWarnings("unchecked")
+            final Enumeration<String> dependencies = prePhaseTarget.getDependencies();
+            while (dependencies.hasMoreElements()) {
+                if (!prePhaseTargets.contains(dependencies.nextElement())) {
+                    throw new PrePhaseTargetCanOnlyDependOnPrePhaseTargetsException(prePhaseTargetName);
+                }
+            }
         }
     }
 
