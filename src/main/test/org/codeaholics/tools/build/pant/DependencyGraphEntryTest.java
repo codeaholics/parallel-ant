@@ -65,12 +65,12 @@ public class DependencyGraphEntryTest {
     @Test(expected = ExpectedRuntimeException.class)
     public void testCallsNotifyCompleteEvenIfExceptionIsThrown() throws Exception {
         mockery.checking(new Expectations() {{
-            ignoring(targetExecutionNotifier).notifyStarting(with(any(DependencyGraphEntry.class)));
+            one(targetExecutionNotifier).notifyComplete(dependencyGraphEntry);
 
             allowing(targetExecutor).executeTarget(target);
             will(throwException(new ExpectedRuntimeException()));
 
-            one(targetExecutionNotifier).notifyComplete(dependencyGraphEntry);
+            ignoring(targetExecutionNotifier).notifyStarting(with(any(DependencyGraphEntry.class)));
         }});
 
         dependencyGraphEntry.run();

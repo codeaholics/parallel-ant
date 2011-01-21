@@ -3,16 +3,16 @@
     <property name="version" value="0.1-alpha"/>
     
     <property name="src.dir" value="src"/>
-    <property name="src.java.dir" value="${src.dir}/java"/>
-    <property name="src.test.dir" value="${src.dir}/test"/>
+    <property name="src.main.java.dir" value="${src.dir}/main/java"/>
+    <property name="src.main.test.dir" value="${src.dir}/main/test"/>
     
     <property name="lib.dir" value="lib"/>
     <property name="etc.dir" value="etc"/>
         
     <property name="build.dir" value="build"/>
     <property name="classes.dir" value="${build.dir}/classes"/>
-    <property name="classes.java.dir" value="${classes.dir}/java"/>
-    <property name="classes.test.dir" value="${classes.dir}/test"/>
+    <property name="classes.main.java.dir" value="${classes.dir}/main/java"/>
+    <property name="classes.main.test.dir" value="${classes.dir}/main/test"/>
     <property name="junit.report.dir" value="${build.dir}/junit"/>
 
     <property name="eclipse.output.dir" value="bin"/>
@@ -36,14 +36,14 @@
     </target>
         
     <target name="compile-src">
-        <mkdir dir="${classes.java.dir}"/>
-        <javac srcdir="${src.java.dir}" destdir="${classes.java.dir}" includeantruntime="true"/>
+        <mkdir dir="${classes.main.java.dir}"/>
+        <javac srcdir="${src.main.java.dir}" destdir="${classes.main.java.dir}" includeantruntime="true"/>
     </target>
     
     <target name="compile-test" depends="compile-src">
-        <mkdir dir="${classes.test.dir}"/>
-        <javac srcdir="${src.test.dir}" destdir="${classes.test.dir}" includeantruntime="true">
-            <classpath location="${classes.java.dir}"/>
+        <mkdir dir="${classes.main.test.dir}"/>
+        <javac srcdir="${src.main.test.dir}" destdir="${classes.main.test.dir}" includeantruntime="true">
+            <classpath location="${classes.main.java.dir}"/>
             <classpath refid="test-classpath"/>
         </javac>
     </target>
@@ -54,12 +54,12 @@
             <formatter type="plain"/>
             <formatter type="xml" />
             <classpath>
-                <pathelement location="${classes.test.dir}"/>
-                <pathelement location="${classes.java.dir}"/>
+                <pathelement location="${classes.main.test.dir}"/>
+                <pathelement location="${classes.main.java.dir}"/>
                 <path refid="test-classpath"/>
             </classpath>
             <batchtest todir="${junit.report.dir}">
-                <fileset dir="${src.test.dir}" includes="**/*Test.java"/>
+                <fileset dir="${src.main.test.dir}" includes="**/*Test.java"/>
             </batchtest>
         </junit>
         <junitreport todir="${junit.report.dir}">
@@ -81,7 +81,7 @@
     
     <target name="jar" depends="compile-src">
         <mkdir dir="${dist.dir}"/>
-        <jar basedir="${classes.java.dir}" destfile="${dist.dir}/parallel-ant-${version}.jar"/>
+        <jar basedir="${classes.main.java.dir}" destfile="${dist.dir}/parallel-ant-${version}.jar"/>
     </target>
     
     <target name="dist" depends="test, jar, zip-src">

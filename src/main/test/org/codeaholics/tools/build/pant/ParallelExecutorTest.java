@@ -16,11 +16,6 @@ package org.codeaholics.tools.build.pant;
  *   limitations under the License.
  */
 
-import static org.codeaholics.tools.build.pant.AntTestHelper.createTarget;
-import static org.hamcrest.Matchers.hasItem;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.LinkedList;
@@ -46,6 +41,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.internal.matchers.TypeSafeMatcher;
 import org.junit.runner.RunWith;
+
+import static org.codeaholics.tools.build.pant.AntTestHelper.*;
+
+import static org.hamcrest.Matchers.*;
+
+import static org.junit.Assert.*;
 
 @RunWith(JMock.class)
 public class ParallelExecutorTest {
@@ -92,11 +93,15 @@ public class ParallelExecutorTest {
 
         parallelExecutor.setAntWrapper(new ExceptionThrowingAntWrapper(target1WithNoDependencies));
 
+        final Sequence sequence = mockery.sequence("shutdown after submit");
+
         mockery.checking(new Expectations() {{
             one(executorService).submit(with(dependencyGraphEntryReferencingTarget(target1WithNoDependencies)));
+            inSequence(sequence);
             will(runTarget());
 
             one(executorService).shutdown();
+            inSequence(sequence);
 
             never(executorService).submit(with(dependencyGraphEntryReferencingTarget(target2WithNoDependencies)));
         }});
@@ -506,7 +511,6 @@ public class ParallelExecutorTest {
         }
     }
 
-    private static final class ExpectedBuildException extends BuildException {
-        private static final long serialVersionUID = 8043165801092558640L;
-    }
+    @SuppressWarnings("serial")
+    private static final class ExpectedBuildException extends BuildException {}
 }
