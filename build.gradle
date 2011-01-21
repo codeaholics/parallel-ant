@@ -1,0 +1,15 @@
+apply plugin: 'java'
+
+repositories {
+    flatDir dirs: ['lib/apache-ant-1.8.1', 'lib/jmock-2.5.1', 'lib/junit-4.8.2']
+}
+
+dependencies {
+    compile     ':ant:1.8.1'
+    
+    testCompile ':jmock:2.5.1', ':jmock-junit4:2.5.1', ':jmock-legacy:2.5.1',
+                ':hamcrest-core:1.1', ':hamcrest-library:1.1',
+                ':junit:4.8.2'
+                
+    testRuntime ':cglib-nodep:2.1_3', ':objenesis:1.0'
+}  
