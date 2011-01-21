@@ -4,7 +4,7 @@
     
     <property name="src.dir" value="src"/>
     <property name="src.main.java.dir" value="${src.dir}/main/java"/>
-    <property name="src.main.test.dir" value="${src.dir}/main/test"/>
+    <property name="src.test.java.dir" value="${src.dir}/test/java"/>
     
     <property name="lib.dir" value="lib"/>
     <property name="etc.dir" value="etc"/>
@@ -12,7 +12,7 @@
     <property name="build.dir" value="build"/>
     <property name="classes.dir" value="${build.dir}/classes"/>
     <property name="classes.main.java.dir" value="${classes.dir}/main/java"/>
-    <property name="classes.main.test.dir" value="${classes.dir}/main/test"/>
+    <property name="classes.test.java.dir" value="${classes.dir}/test/java"/>
     <property name="junit.report.dir" value="${build.dir}/junit"/>
 
     <property name="eclipse.output.dir" value="bin"/>
@@ -41,8 +41,8 @@
     </target>
     
     <target name="compile-test" depends="compile-src">
-        <mkdir dir="${classes.main.test.dir}"/>
-        <javac srcdir="${src.main.test.dir}" destdir="${classes.main.test.dir}" includeantruntime="true">
+        <mkdir dir="${classes.test.java.dir}"/>
+        <javac srcdir="${src.test.java.dir}" destdir="${classes.test.java.dir}" includeantruntime="true">
             <classpath location="${classes.main.java.dir}"/>
             <classpath refid="test-classpath"/>
         </javac>
@@ -54,12 +54,12 @@
             <formatter type="plain"/>
             <formatter type="xml" />
             <classpath>
-                <pathelement location="${classes.main.test.dir}"/>
+                <pathelement location="${classes.test.java.dir}"/>
                 <pathelement location="${classes.main.java.dir}"/>
                 <path refid="test-classpath"/>
             </classpath>
             <batchtest todir="${junit.report.dir}">
-                <fileset dir="${src.main.test.dir}" includes="**/*Test.java"/>
+                <fileset dir="${src.test.java.dir}" includes="**/*Test.java"/>
             </batchtest>
         </junit>
         <junitreport todir="${junit.report.dir}">
