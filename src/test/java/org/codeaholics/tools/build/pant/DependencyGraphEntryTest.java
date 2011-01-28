@@ -1,7 +1,7 @@
 package org.codeaholics.tools.build.pant;
 
 /*
- *   Copyright 2010 Danny Yates
+ *   Copyright 2010-2011 Danny Yates
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
