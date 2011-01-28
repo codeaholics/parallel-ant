@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="parallel-ant" default="jar" basedir=".">
-    <property name="version" value="0.1-alpha"/>
+    <property name="version" value="0.1-alpha-2"/>
     
     <property name="src.dir" value="src"/>
     <property name="src.main.java.dir" value="${src.dir}/main/java"/>
@@ -76,6 +76,7 @@
         <zip destfile="${dist.dir}/parallel-ant-${version}-src.zip" basedir=".">
             <exclude name="${build.dir}/**"/>
             <exclude name="${eclipse.output.dir}/**"/>
+            <exclude name=".*/**"/>  <!-- all hidden files/folders -->
         </zip>
     </target>
     

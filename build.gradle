@@ -1,5 +1,8 @@
 apply plugin: 'java'
 
+archivesBaseName = 'parallel-ant'
+version = '0.1-alpha-2'
+
 repositories {
     flatDir dirs: ['lib/apache-ant-1.8.1', 'lib/jmock-2.5.1', 'lib/junit-4.8.2']
 }
@@ -12,4 +15,14 @@ dependencies {
                 ':junit:4.8.2'
                 
     testRuntime ':cglib-nodep:2.1_3', ':objenesis:1.0'
-}  
+}
+//
+//task srcZip(type: Zip) {
+//    classifier = 'src'
+//    from projectDir
+//    include {
+//        sourceSets.collect {
+//            it.allSource.asPath
+//        }
+//    }
+//}
