@@ -16,13 +16,11 @@ dependencies {
                 
     testRuntime ':cglib-nodep:2.1_3', ':objenesis:1.0'
 }
-//
-//task srcZip(type: Zip) {
-//    classifier = 'src'
-//    from projectDir
-//    include {
-//        sourceSets.collect {
-//            it.allSource.asPath
-//        }
-//    }
-//}
+
+task srcZip(type: Zip) {
+    classifier = 'src'
+    from projectDir
+    include 'src/**/*', 'lib/**/*', 'etc/**/*'
+    include 'LICENCE', 'README', 'NOTICE', 'build.*'
+    exclude 'etc/eclipse/**/*'
+}
