@@ -16,6 +16,11 @@ package org.codeaholics.tools.build.pant;
  *   limitations under the License.
  */
 
+import static org.codeaholics.tools.build.pant.AntTestHelper.createTarget;
+import static org.hamcrest.Matchers.hasItem;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.LinkedList;
@@ -42,12 +47,6 @@ import org.junit.Test;
 import org.junit.internal.matchers.TypeSafeMatcher;
 import org.junit.runner.RunWith;
 
-import static org.codeaholics.tools.build.pant.AntTestHelper.*;
-
-import static org.hamcrest.Matchers.*;
-
-import static org.junit.Assert.*;
-
 @RunWith(JMock.class)
 public class ParallelExecutorTest {
     private static final String TARGET_NAME1 = "targetName1";
@@ -56,6 +55,7 @@ public class ParallelExecutorTest {
     private static final String SPARE_TARGET_NAME = "spareTarget";
     private static final String UNKNOWN_PANT_TARGET_NAME = "pant:unknown";
     private static final String PANT_PRE_PHASE_TARGET_NAME = "pant:pre-phase";
+    private static final String PANT_THREADS = "pant.threads";
 
     private Mockery mockery;
     private ParallelExecutor parallelExecutor;
@@ -90,6 +90,7 @@ public class ParallelExecutorTest {
         targets.put(TARGET_NAME2, target2WithNoDependencies);
 
         allowNormalInteractions(targets, false);
+        allowAnyThreadCount();
 
         parallelExecutor.setAntWrapper(new ExceptionThrowingAntWrapper(target1WithNoDependencies));
 
@@ -117,6 +118,7 @@ public class ParallelExecutorTest {
         targets.put(TARGET_NAME2, target2WithNoDependencies);
 
         allowNormalInteractions(targets, true);
+        allowAnyThreadCount();
 
         parallelExecutor.setAntWrapper(new ExceptionThrowingAntWrapper(target1WithNoDependencies));
 
@@ -149,6 +151,7 @@ public class ParallelExecutorTest {
         targets.put(TARGET_NAME2, target2WithNoDependencies);
 
         allowNormalInteractions(targets, false);
+        allowAnyThreadCount();
 
         parallelExecutor.setAntWrapper(new NoOpAntWrapper());
 
@@ -182,6 +185,7 @@ public class ParallelExecutorTest {
         targets.put(TARGET_NAME3, target3DependingOnTargets1And2);
 
         allowNormalInteractions(targets, false);
+        allowAnyThreadCount();
 
         parallelExecutor.setAntWrapper(new NoOpAntWrapper());
 
@@ -235,6 +239,7 @@ public class ParallelExecutorTest {
         targets.put(UNKNOWN_PANT_TARGET_NAME, createTarget(mockery, UNKNOWN_PANT_TARGET_NAME));
 
         allowNormalInteractions(targets, false);
+        allowAnyThreadCount();
 
         final AntWrapper antWrapper = mockery.mock(AntWrapper.class);
 
@@ -260,6 +265,7 @@ public class ParallelExecutorTest {
         targets.put(SPARE_TARGET_NAME, createTarget(mockery, SPARE_TARGET_NAME, PANT_PRE_PHASE_TARGET_NAME));
 
         allowNormalInteractions(targets, false);
+        allowAnyThreadCount();
 
         parallelExecutor.setAntWrapper(new FailOnExecuteAntWrapper());
 
@@ -282,6 +288,7 @@ public class ParallelExecutorTest {
         targets.put(PANT_PRE_PHASE_TARGET_NAME, prePhaseTarget);
 
         allowNormalInteractions(targets, false);
+        allowAnyThreadCount();
 
         parallelExecutor.setAntWrapper(new FailOnExecuteAntWrapper());
 
@@ -304,6 +311,7 @@ public class ParallelExecutorTest {
         targets.put(PANT_PRE_PHASE_TARGET_NAME, prePhaseTarget);
 
         allowNormalInteractions(targets, false);
+        allowAnyThreadCount();
 
         parallelExecutor.setAntWrapper(new FailOnExecuteAntWrapper());
 
@@ -326,6 +334,7 @@ public class ParallelExecutorTest {
         targets.put(TARGET_NAME3, target3DependingOnTargets1And2);
 
         allowNormalInteractions(targets, false);
+        allowAnyThreadCount();
 
         parallelExecutor.setAntWrapper(new NoOpAntWrapper());
 
@@ -352,6 +361,7 @@ public class ParallelExecutorTest {
         targets.put(PANT_PRE_PHASE_TARGET_NAME, prePhaseTarget);
 
         allowNormalInteractions(targets, false);
+        allowAnyThreadCount();
 
         parallelExecutor.setAntWrapper(new NoOpAntWrapper());
 
@@ -388,6 +398,7 @@ public class ParallelExecutorTest {
         targets.put(PANT_PRE_PHASE_TARGET_NAME, prePhaseTarget);
 
         allowNormalInteractions(targets, false);
+        allowAnyThreadCount();
 
         parallelExecutor.setAntWrapper(new FailOnExecuteAntWrapper());
 
@@ -401,6 +412,50 @@ public class ParallelExecutorTest {
         parallelExecutor.executeTargets(project, new String[] {TARGET_NAME3});
     }
 
+    @Test
+    public void testCreateExecutorServiceWithCorrectNumberOfThreads() throws Exception {
+        final Hashtable<String, Target> targets = new Hashtable<String, Target>();
+
+        targets.put(TARGET_NAME1, target1WithNoDependencies);
+
+        allowNormalInteractions(targets, false);
+
+        parallelExecutor.setAntWrapper(new NoOpAntWrapper());
+
+        mockery.checking(new Expectations() {{
+            one(executorServiceFactory).create(19);
+
+            allowing(project).getProperty(PANT_THREADS);
+            will(returnValue("19"));
+
+            ignoring(executorService);
+        }});
+
+        parallelExecutor.executeTargets(project, new String[] {TARGET_NAME1});
+    }
+
+    @Test
+    public void testCreateExecutorServiceDefaultThreadCountIfNoneSpecified() throws Exception {
+        final Hashtable<String, Target> targets = new Hashtable<String, Target>();
+
+        targets.put(TARGET_NAME1, target1WithNoDependencies);
+
+        allowNormalInteractions(targets, false);
+
+        parallelExecutor.setAntWrapper(new NoOpAntWrapper());
+
+        mockery.checking(new Expectations() {{
+            one(executorServiceFactory).create(2);
+
+            allowing(project).getProperty(PANT_THREADS);
+            will(returnValue(null));
+
+            ignoring(executorService);
+        }});
+
+        parallelExecutor.executeTargets(project, new String[] {TARGET_NAME1});
+    }
+
     private void allowNormalInteractions(final Hashtable<String, Target> targets, final boolean keepGoingMode) throws InterruptedException {
         mockery.checking(new Expectations() {{
             allowing(project).getTargets();
@@ -409,11 +464,20 @@ public class ParallelExecutorTest {
             allowing(project).isKeepGoingMode();
             will(returnValue(keepGoingMode));
 
-            allowing(executorServiceFactory).create(with(any(Integer.TYPE)));
-            will(returnValue(executorService));
-
             allowing(executorService).awaitTermination(with(any(Long.TYPE)), with(any(TimeUnit.class)));
             will(returnValue(true));
+
+            allowing(project).log(with(any(String.class)), with(any(Integer.TYPE)));
+        }});
+    }
+
+    private void allowAnyThreadCount() {
+        mockery.checking(new Expectations() {{
+            allowing(project).getProperty(PANT_THREADS);
+            will(returnValue("4"));
+
+            allowing(executorServiceFactory).create(with(any(Integer.TYPE)));
+            will(returnValue(executorService));
         }});
     }
 

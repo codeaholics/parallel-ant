@@ -14,12 +14,12 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-FULLNAME=`readlink -f "$0"`
-PROG=`basename "$FULLNAME"`
-DIR=`dirname "$FULLNAME"`
+FULLNAME=$(readlink -f "$0")
+PROG=$(basename "$FULLNAME")
+DIR=$(dirname "$FULLNAME")
 
 # Default #threads == #cpus
-threads=`grep ^processor /proc/cpuinfo | wc -l`
+threads=$(grep ^processor /proc/cpuinfo | wc -l)
 threadflag=
 
 # Default lib dir == script dir
@@ -28,7 +28,7 @@ libdirflag=
 
 usage()
 {
-  echo "usage: $PROG [-t <threads>] [-l <libdir>] [-- <antflag>...} ] <target> <target>..."
+  echo "usage: $PROG [-t <threads>] [-l <libdir>] [-- {<antflag>...} ] <target> <target>..."
 }
 
 while getopts 'ht:l:' OPTION ; do
@@ -55,7 +55,5 @@ while getopts 'ht:l:' OPTION ; do
 done
 
 shift $(($OPTIND - 1))
-
-echo Executing parallel ant with $threads threads
 
 ant -lib ${libdir}/parallel-ant.jar -Dant.executor.class=org.codeaholics.tools.build.pant.ParallelExecutor -Dpant.threads=${threads} -logger org.codeaholics.tools.build.pant.ParallelExecutorLogger "$@"

@@ -71,7 +71,7 @@ public class ParallelExecutor implements Executor {
                     throw new CannotExecutePrivateTargetException(targetName);
                 }
 
-                executeTarget(targetsByName.get(targetName), targetsByName);
+                executeTarget(targetsByName.get(targetName), targetsByName, project);
             } catch (final BuildException ex) {
                 if (project.isKeepGoingMode()) {
                     thrownException = ex;
@@ -94,14 +94,15 @@ public class ParallelExecutor implements Executor {
         this.antWrapper = antWrapper;
     }
 
-    private void executeTarget(final Target target, final Map<String, Target> targetsByName) {
+    private void executeTarget(final Target target, final Map<String, Target> targetsByName, final Project project) {
         final DependencyGraphEntryFactory dependencyGraphEntryFactory =
             new DependencyGraphEntryFactoryImpl(getTargetExecutionNotifier(), antWrapper);
         dependencyGraph = new DependencyGraph(targetsByName, prePhaseTargets, dependencyGraphEntryFactory);
         rootDependencyGraphEntry = dependencyGraph.buildDependencies(target);
         isPrePhase = true;
 
-        executorService = executorServiceFactory.create(getNumberOfThreads());
+        final int numberOfThreads = getNumberOfThreads(project);
+        executorService = executorServiceFactory.create(numberOfThreads);
 
         scheduleMore();
 
@@ -112,8 +113,11 @@ public class ParallelExecutor implements Executor {
         }
     }
 
-    private int getNumberOfThreads() {
-        return DEFAULT_THREAD_COUNT;
+    private int getNumberOfThreads(final Project project) {
+        final String threads = project.getProperty("pant.threads");
+        final int numberOfThreads = threads == null ? DEFAULT_THREAD_COUNT : Integer.parseInt(threads);
+        project.log("Building with " + numberOfThreads + " thread(s)", Project.MSG_INFO);
+        return numberOfThreads;
     }
 
     private void scheduleMore() {
