@@ -86,9 +86,7 @@ public class DependencyGraphEntry implements Runnable {
     public void run() {
         executionNotifier.notifyStarting(this);
         try {
-            // if (target.getProject().isKeepGoingMode()) {
             targetExecutor.executeTarget(target);
-            // }
         } finally {
             executionNotifier.notifyComplete(this);
         }
