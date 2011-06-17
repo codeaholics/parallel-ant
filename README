@@ -1,4 +1,4 @@
-This is alpha quality software.
+This is beta quality software.
 
 There are a number of known issues and missing functionality. Please see
 
@@ -6,8 +6,7 @@ There are a number of known issues and missing functionality. Please see
    
 for more details and to raise issues/requests.
 
-Note in particular, the some of the error handling is not yet complete, and the
-number of threads is currently fixed at 2 and not configurable (despite the
-'pant' shell script giving that appearance!)
+Documentation can be found at
 
-See the included 'pant' shell script for details of how to run Parallel Ant.
+   http://blog.codeaholics.org/parallel-ant
+
