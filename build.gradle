@@ -1,21 +1,28 @@
 apply plugin: 'java'
 
+defaultTasks 'build'
+
 archivesBaseName = 'parallel-ant'
 version = '0.9-beta'
 
 repositories {
-    flatDir dirs: ['lib/apache-ant-1.8.1', 'lib/jmock-2.5.1', 'lib/junit-4.8.2']
+    mavenCentral()
+}
+
+configurations {
+    provided
 }
 
 dependencies {
-    compile     ':ant:1.8.1'
+    provided 'org.apache.ant:ant:1.8.1'
     
-    testCompile ':jmock:2.5.1', ':jmock-junit4:2.5.1', ':jmock-legacy:2.5.1',
-                ':hamcrest-core:1.1', ':hamcrest-library:1.1',
-                ':junit:4.8.2'
-                
-    testRuntime ':cglib-nodep:2.1_3', ':objenesis:1.0'
+    testCompile 'org.jmock:jmock:2.5.1', 'org.jmock:jmock-junit4:2.5.1', 'org.jmock:jmock-legacy:2.5.1',
+                'junit:junit:4.8.2'
 }
+
+sourceSets.main.compileClasspath += configurations.provided
+sourceSets.test.compileClasspath += configurations.provided
+sourceSets.test.runtimeClasspath += configurations.provided
 
 task srcZip(type: Zip) {
     classifier = 'src'
@@ -24,3 +31,4 @@ task srcZip(type: Zip) {
     include 'LICENCE', 'README', 'NOTICE', 'build.*'
     exclude 'etc/eclipse/**/*'
 }
+assemble.dependsOn(srcZip)
