@@ -46,6 +46,7 @@ public class ParallelExecutor implements Executor {
     private ExecutorService executorService;
 
     private int queued;
+    @SuppressWarnings("unused")
     private int started;
     private int finished;
 
@@ -96,7 +97,7 @@ public class ParallelExecutor implements Executor {
 
     private void executeTarget(final Target target, final Map<String, Target> targetsByName, final Project project) {
         final DependencyGraphEntryFactory dependencyGraphEntryFactory =
-            new DependencyGraphEntryFactoryImpl(getTargetExecutionNotifier(), antWrapper);
+                new DependencyGraphEntryFactoryImpl(getTargetExecutionNotifier(), antWrapper);
         dependencyGraph = new DependencyGraph(targetsByName, prePhaseTargets, dependencyGraphEntryFactory);
         rootDependencyGraphEntry = dependencyGraph.buildDependencies(target);
         isPrePhase = true;

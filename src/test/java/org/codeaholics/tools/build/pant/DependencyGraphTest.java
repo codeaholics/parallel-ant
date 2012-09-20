@@ -158,8 +158,8 @@ public class DependencyGraphTest {
         return new DependencyGraphEntry(target, false, null, null);
     }
 
-    private static <T> Set<T> setOf(final T... objects) {
-        return new HashSet<T>(Arrays.asList(objects));
+    private static Set<String> setOf(final String... strings) {
+        return new HashSet<String>(Arrays.asList(strings));
     }
 
     private static Matcher<List<DependencyGraphEntry>> equalToUnsortedList(final DependencyGraphEntry... dependencyGraphEntries) {

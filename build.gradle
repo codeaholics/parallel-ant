@@ -27,6 +27,10 @@ sourceSets.main.compileClasspath += configurations.provided
 sourceSets.test.compileClasspath += configurations.provided
 sourceSets.test.runtimeClasspath += configurations.provided
 
+tasks.withType(Compile) {
+    options.compilerArgs << "-Xlint:unchecked"
+}
+
 task srcZip(type: Zip) {
     classifier = 'src'
     from projectDir
