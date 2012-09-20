@@ -1,0 +1,6 @@
+These libraries are here for Eclipse, because we are emulating the Maven
+'provided' scope in gradle.build, but the Eclipse STS Gradle plugin
+doesn't correctly pull the Ant JAR from the emulated 'provided' scope.
+This results in compile errors in Eclipse because none of the Ant
+classes are present. So we manually add the JARs from this directory to
+the Eclipse classpath. Yuck.

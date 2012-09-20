@@ -7,5 +7,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
 	<classpathentry exported="true" kind="con" path="org.springsource.ide.eclipse.gradle.classpathcontainer"/>
 	<classpathentry kind="con" path="org.springsource.ide.eclipse.gradle.dsld.classpathcontainer"/>
+	<classpathentry kind="lib" path="lib/apache-ant-1.8.1/ant-1.8.1.jar" sourcepath="lib/apache-ant-1.8.1/apache-ant-1.8.1-src.zip"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
