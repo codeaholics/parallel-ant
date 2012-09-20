@@ -16,8 +16,11 @@ configurations {
 dependencies {
     provided 'org.apache.ant:ant:1.8.1'
     
-    testCompile 'org.jmock:jmock:2.5.1', 'org.jmock:jmock-junit4:2.5.1', 'org.jmock:jmock-legacy:2.5.1',
-                'junit:junit:4.8.2'
+    testCompile 'junit:junit:4.8.2', 'org.jmock:jmock:2.5.1', 'org.jmock:jmock-legacy:2.5.1'
+                
+    testCompile('org.jmock:jmock-junit4:2.5.1'){
+        exclude module: 'junit-dep'
+    }
 }
 
 sourceSets.main.compileClasspath += configurations.provided
@@ -27,8 +30,8 @@ sourceSets.test.runtimeClasspath += configurations.provided
 task srcZip(type: Zip) {
     classifier = 'src'
     from projectDir
-    include 'src/**/*', 'lib/**/*', 'etc/**/*'
-    include 'LICENCE', 'README', 'NOTICE', 'build.*'
-    exclude 'etc/eclipse/**/*'
+    include sourceSets*.allSource.srcDirs*.collect { relativePath(it) }.flatten()
+    include 'etc/**/*', 'LICENCE', 'README', 'NOTICE', 'build.*', 'gradlew*'
+    exclude 'etc/eclipse'
 }
 assemble.dependsOn(srcZip)
