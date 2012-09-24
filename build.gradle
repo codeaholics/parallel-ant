@@ -34,8 +34,9 @@ tasks.withType(Compile) {
 task srcZip(type: Zip) {
     classifier = 'src'
     from projectDir
-    include sourceSets*.allSource.srcDirs*.collect { relativePath(it) }.flatten()
-    include 'etc/**/*', 'LICENCE', 'README', 'NOTICE', 'build.*', 'gradlew*'
+    include 'src/**/*'
+    include 'etc/**/*'
+    include 'LICENCE', 'README', 'NOTICE', 'build.*', 'gradlew*'
     exclude 'etc/eclipse'
 }
 assemble.dependsOn(srcZip)
