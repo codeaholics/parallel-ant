@@ -19,6 +19,7 @@ package org.codeaholics.tools.build.pant;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Target;
 
 public class DependencyGraphEntry implements Runnable {
@@ -87,6 +88,8 @@ public class DependencyGraphEntry implements Runnable {
         executionNotifier.notifyStarting(this);
         try {
             targetExecutor.executeTarget(target);
+        } catch (BuildException e) {
+            executionNotifier.notifyException(this, e);
         } finally {
             executionNotifier.notifyComplete(this);
         }

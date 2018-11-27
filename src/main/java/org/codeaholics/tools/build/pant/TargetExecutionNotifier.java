@@ -16,7 +16,10 @@ package org.codeaholics.tools.build.pant;
  *   limitations under the License.
  */
 
+import org.apache.tools.ant.BuildException;
+
 public interface TargetExecutionNotifier {
     public void notifyStarting(DependencyGraphEntry dependencyGraphEntry);
     public void notifyComplete(DependencyGraphEntry dependencyGraphEntry);
+    public void notifyException(DependencyGraphEntry dependencyGraphEntry, BuildException e);
 }
