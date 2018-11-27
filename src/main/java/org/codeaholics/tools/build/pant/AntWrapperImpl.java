@@ -18,10 +18,15 @@ package org.codeaholics.tools.build.pant;
 
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.Target;
+import org.apache.tools.ant.property.LocalProperties;
 
 public class AntWrapperImpl implements AntWrapper {
     @Override
     public void executeTarget(final Target target) {
+        // Ensure a copy of the LocalProperties is performed before invoking the
+        // target to prevent data races from multiple targets invoked in parallel.
+        LocalProperties.get(target.getProject()).copy();
+
         target.performTasks();
     }
 
