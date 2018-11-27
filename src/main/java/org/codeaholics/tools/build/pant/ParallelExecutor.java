@@ -45,6 +45,8 @@ public class ParallelExecutor implements Executor {
     private AntWrapper antWrapper = new AntWrapperImpl();
     private ExecutorService executorService;
 
+    private final List<BuildException> buildExceptions = new LinkedList<BuildException>();
+
     private int queued;
     @SuppressWarnings("unused")
     private int started;
@@ -112,6 +114,25 @@ public class ParallelExecutor implements Executor {
         } catch (final InterruptedException e) {
             // ignore
         }
+
+        // Check for any exceptions that were thrown from the executorService
+        if (buildExceptions.size() > 1) {
+            // Combine the multiple exceptions into a new BuildException so all the errors are propagated to the user
+            String msg = "\n" + buildExceptions.size() + " failures occurred while building:";
+
+            int i = 0;
+            for (BuildException e : buildExceptions) {
+                i += 1;
+                msg += "\nFailure " + i + ":\n" + e + "\n";
+            }
+
+            throw new BuildException(msg);
+        } else {
+            // 0 or 1 exceptions, if 1 exists then just throw it
+            for (BuildException e : buildExceptions) {
+                throw e;
+            }
+        }
     }
 
     private int getNumberOfThreads(final Project project) {
@@ -170,6 +191,12 @@ public class ParallelExecutor implements Executor {
                 if (dependencyGraphEntry == rootDependencyGraphEntry) {
                     executorService.shutdown();
                 }
+            }
+
+            @Override
+            public synchronized void notifyException(final DependencyGraphEntry dependencyGraphEntry, BuildException e) {
+                buildExceptions.add(e);
+                executorService.shutdown();
             }
         };
     }
