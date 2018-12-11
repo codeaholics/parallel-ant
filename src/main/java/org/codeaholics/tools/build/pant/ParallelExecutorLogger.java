@@ -24,6 +24,8 @@ import java.io.StringReader;
 import org.apache.tools.ant.BuildEvent;
 import org.apache.tools.ant.DefaultLogger;
 import org.apache.tools.ant.Project;
+import org.apache.tools.ant.Target;
+import org.apache.tools.ant.Task;
 import org.apache.tools.ant.util.FileUtils;
 import org.apache.tools.ant.util.StringUtils;
 
@@ -58,10 +60,12 @@ public class ParallelExecutorLogger extends DefaultLogger {
         if (priority <= msgOutputLevel) {
 
             final StringBuffer message = new StringBuffer();
-            if (event.getTask() != null && !emacsMode) {
+            final Task eventTask = event.getTask();
+            if (eventTask != null && !emacsMode) {
                 // Print out the name of the (target, task) if we're in one
-                final String targetName = event.getTask().getOwningTarget().getName();
-                final String taskName = event.getTask().getTaskName();
+                final Target owningTarget = eventTask.getOwningTarget();
+                final String targetName = (owningTarget != null ? owningTarget.getName() : "");
+                final String taskName = eventTask.getTaskName();
                 String label = "[" + targetName + " / " + taskName + "] ";
                 final int size = LEFT_COLUMN_SIZE - label.length();
                 final StringBuffer tmp = new StringBuffer();
@@ -97,7 +101,6 @@ public class ParallelExecutorLogger extends DefaultLogger {
                         FileUtils.close(r);
                     }
                 }
-
             } else {
                 // emacs mode or there is no task
                 message.append(event.getMessage());
